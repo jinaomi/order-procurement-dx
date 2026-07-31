@@ -11,7 +11,15 @@ Tài liệu bổ sung:
 
 ---
 
-## Current State (2026-07-26)
+## Current State (2026-07-31)
+
+**QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`. Repo này được tạo ra để làm điểm khởi đầu xây thêm module **仕入れ** (mua hàng/nhà cung cấp) — module này **CHƯA có thiết kế**, xem "Next Steps" bên dưới.
+
+Backend/frontend/ngrok của bản demo cũ (chạy từ `case-management`) đã dừng hẳn — hiện **không có demo nào đang chạy sống**. Repo này đã `npm install` + `dotnet restore`/build xong (0 lỗi), sẵn sàng chạy local; secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
+
+Artifact User Guide/demo script (KHÔNG nằm trong git, chỉ tồn tại trên claude.ai): **https://claude.ai/code/artifact/d6ac3e4c-590e-4495-8b6c-2e7d39e42667**
+
+---
 
 Ngoài hệ thống Case/Template gốc mô tả bên dưới, project đã được mở rộng thành nền tảng **受注業務DX** (order-processing) cho SME sản xuất Nhật Bản, dùng để demo bán hàng. Toàn bộ 6 bước của flow đã triển khai và test qua API/UI thật:
 
@@ -28,23 +36,21 @@ Ngoài hệ thống Case/Template gốc mô tả bên dưới, project đã đư
 
 Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/AnthropicClient.cs`), model `claude-opus-4-8`, API key qua `dotnet user-secrets` (KHÔNG trong appsettings.json).
 
-**Build health (2026-07-26)**: `dotnet build` (backend, 8 warning không nghiêm trọng) và `npm run build` (frontend) đều pass, không lỗi.
+**Build health (2026-07-31)**: `dotnet build` (backend) và `npm install` (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`).
 
-**Demo/chia sẻ ra ngoài**:
-- Repo demo riêng (history sạch, đã sanitize secret): **https://github.com/jinaomi/order-platform-dx** — tách biệt hoàn toàn khỏi repo `case-management` gốc.
-- App hiện đang chạy production build, serve qua 1 cổng (`backend/CaseMngmt.Server/wwwroot`) và public qua ngrok tunnel — URL đổi mỗi lần restart ngrok, xem devlog gần nhất hoặc hỏi lại để lấy URL hiện tại. Quy trình build+deploy: `npm run build` (frontend) → mirror vào `wwwroot` (`robocopy ... /MIR`) → chạy backend với `--no-launch-profile` (né SpaProxy cũ trỏ thư mục không tồn tại) → `ngrok http 5178`.
+**Demo/chia sẻ ra ngoài**: hiện **không có demo nào đang chạy sống** (đã dừng bản demo cũ chạy từ `case-management`). Khi cần dựng lại demo: `npm run build` (frontend) → mirror vào `wwwroot` (`robocopy ... /MIR`) → chạy backend với `--no-launch-profile` (né SpaProxy cũ trỏ thư mục không tồn tại) → `ngrok http 5178`. URL ngrok đổi mỗi lần restart trừ khi có static domain đã đặt riêng — xem devlog gần nhất để biết URL hiện tại nếu có.
 
-**Ghi chú môi trường quan trọng (đã đổi so với trước)**: `git` (2.55.0) và `ngrok` (3.39.10) giờ **đã cài** qua winget, dùng được — nhưng PATH KHÔNG tự refresh giữa các lần gọi PowerShell tool (mỗi lệnh là tiến trình mới, phải tự nạp lại `$env:PATH` từ registry Machine+User trước khi gọi `git`/`ngrok`, xem ví dụ trong devlog 2026-07-26). ngrok từng bị Windows Defender quarantine ngay khi tự update — đã fix bằng cách user thêm Defender exclusion cho `%LOCALAPPDATA%\Microsoft\WinGet\Packages`.
+**Ghi chú môi trường quan trọng**: `git`, `ngrok`, và `gh` (GitHub CLI) đều **đã cài** qua winget và đã `gh auth login` thành công (account `jinaomi`) — dùng được cho việc tạo/push repo. **`dotnet` CLI đã có trên máy** (`C:\Program Files\dotnet\dotnet.exe`, SDK 10.0.302, chạy build/restore/user-secrets bình thường — thông tin "dotnet CLI không có trên máy" ở mục "Môi trường phát triển" bên dưới đã LỖI THỜI, xem ghi chú tại đó). PATH KHÔNG tự refresh giữa các lần gọi PowerShell tool (mỗi lệnh là tiến trình mới, phải tự nạp lại `$env:PATH` từ registry Machine+User trước khi gọi `git`/`ngrok`/`gh`). ngrok từng bị Windows Defender quarantine ngay khi tự update — đã fix bằng cách user thêm Defender exclusion cho `%LOCALAPPDATA%\Microsoft\WinGet\Packages`.
 
 ## Next Steps
 
-1. **User tự commit + push** toàn bộ thay đổi (repo `case-management` gốc) — dù `git` giờ đã cài được trong session này, chưa có xác nhận từ user để tự động commit; rất nhiều thay đổi 2026-07-25 + 2026-07-26 chưa vào version control.
-2. Rotate AWS S3 access key/secret key đang hardcode plaintext trong `backend/CaseMngmt.Server/appsettings.json` (repo gốc) — cần user xác nhận trước vì ảnh hưởng môi trường đang deploy.
-3. Thêm `*.log` vào `.gitignore` gốc (hiện `ngrok_run.log`, `backend_run.log*` chưa bị ignore, dễ commit nhầm).
-4. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận, sau Dashboard comment + Chat AI), hoặc chuyển sang các việc treo khác.
-5. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
-6. Chart đẹp bằng `@mui/x-charts` thay stat tile/bảng thô trên `SalesDashboard.js`.
-7. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
+1. **Thiết kế module 仕入れ (procurement/supplier)** — mục đích chính repo này được tạo ra, nhưng CHƯA có thiết kế gì cả (chưa có Supplier entity, PurchaseOrder, hay quyết định liên kết thế nào với `Product.StockQuantity` hiện có). Cần 1 phiên plan riêng trước khi code.
+2. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
+3. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
+4. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
+5. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
+
+Các next-step khác liên quan riêng tới `case-management` gốc (rotate AWS key hardcode trong repo đó, thêm `*.log` vào `.gitignore` gốc...) — không còn thuộc phạm vi làm việc, xem `docs/devlog/2026-07-31.md` nếu cần biết chi tiết.
 
 ---
 
@@ -375,7 +381,7 @@ Lý do: project đã bắt đầu với JS, không muốn migration cost.
 
 - **OS**: Windows 11 Pro
 - **Shell**: PowerShell (dùng PowerShell syntax, KHÔNG bash syntax cho file ops)
-- **dotnet CLI**: **KHÔNG có trên máy** — không chạy được `dotnet ef migrations add`
+- **dotnet CLI**: **đã có trên máy** (`C:\Program Files\dotnet\dotnet.exe`, SDK 10.0.302) — `dotnet build`/`restore`/`user-secrets` dùng bình thường. Riêng `dotnet ef migrations add` chưa xác nhận có EF Core tools global hay không — vẫn ưu tiên tạo migration file thủ công theo pattern bên dưới trừ khi xác nhận lại được.
 - **npm**: có trong frontend/
 - **Database**: SQL Server (connection string trong appsettings)
 - **Auto-migration**: `db.Database.Migrate()` trong `Program.cs` — apply khi app start
