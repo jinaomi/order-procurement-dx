@@ -227,6 +227,22 @@ namespace CaseMngmt.Repository.Keywords
             }
         }
 
+        public async Task<string?> GetModuleTypeByKeywordIdAsync(Guid keywordId)
+        {
+            try
+            {
+                var query = from keyword in _context.Keyword
+                            join template in _context.Template on keyword.TemplateId equals template.Id
+                            where keyword.Id == keywordId
+                            select template.ModuleType;
+                return await query.FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         public async Task<int> SoftHideAsync(Guid id)
         {
             try

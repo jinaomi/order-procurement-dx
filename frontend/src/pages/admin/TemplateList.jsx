@@ -48,6 +48,12 @@ const TemplateList = () => {
     fetchTemplates();
   }, []);
 
+  const moduleTypeLabel = {
+    Case: "案件管理",
+    Product: "商品管理",
+    Order: "受注管理",
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
@@ -69,6 +75,7 @@ const TemplateList = () => {
             <TableHead>
               <TableRow>
                 <TableCell>テンプレート名</TableCell>
+                <TableCell style={{ textAlign: "center" }}>種別</TableCell>
                 <TableCell style={{ textAlign: "center" }}>フィールド数</TableCell>
                 <TableCell style={{ textAlign: "center" }}>作成日</TableCell>
                 <TableCell style={{ textAlign: "center" }}>操作</TableCell>
@@ -78,6 +85,9 @@ const TemplateList = () => {
               {templates.map((row) => (
                 <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                   <TableCell>{row.name}</TableCell>
+                  <TableCell style={{ textAlign: "center" }}>
+                    {moduleTypeLabel[row.moduleType] || row.moduleType || "案件管理"}
+                  </TableCell>
                   <TableCell style={{ textAlign: "center" }}>
                     {row.keywords?.length ?? 0}
                   </TableCell>

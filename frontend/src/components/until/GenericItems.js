@@ -12,7 +12,7 @@ function GenericItems({ label, type, options, children, ...props }) {
           onChange={props.handleInput}
           value={props.value}
           isRequired={props.required}
-          maxLength={props.maxLength}
+          maxLength={props.maxLength || undefined}
         >
           {children}
         </FormInput>
@@ -70,6 +70,20 @@ function GenericItems({ label, type, options, children, ...props }) {
             ></input>
           </div>
         </div>
+      );
+    case "textarea":
+      return (
+        <FormInput
+          label={label}
+          className="section-input"
+          type="textarea"
+          onChange={props.handleInput}
+          value={props.value}
+          isRequired={props.required}
+          maxLength={props.maxLength || undefined}
+        >
+          {children}
+        </FormInput>
       );
     case "datetime":
       return (

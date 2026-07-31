@@ -1,3 +1,4 @@
+using CaseMngmt.Models.EntityKeywords;
 using System.ComponentModel.DataAnnotations;
 
 namespace CaseMngmt.Models.Orders
@@ -27,5 +28,7 @@ namespace CaseMngmt.Models.Orders
         [Required]
         [MinLength(1, ErrorMessage = "Order must have at least one item.")]
         public List<OrderItemRequest> OrderItems { get; set; } = new List<OrderItemRequest>();
+
+        public List<EntityKeywordValueRequest> CustomFieldValues { get; set; } = new();
     }
 }

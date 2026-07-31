@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormInput from "./until/FormInput";
+import CustomFieldsSection from "./until/CustomFieldsSection";
 import { Grid } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import productService from "../services/productService";
+import templateService from "../services/templateService";
 
 const ProductDetail = ({ productId }) => {
   const [latestData, setLatestData] = useState({});
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState([]);
   const [loading, setLoading] = useState(false);
   const axiosPrivate = useAxiosPrivate();
   const [snackbar, setSnackbar] = useState({
@@ -20,8 +24,18 @@ const ProductDetail = ({ productId }) => {
   const [dataId, setDataId] = useState();
 
   useEffect(async () => {
+    await getCustomFields();
     await getProductDetail();
   }, []);
+
+  const getCustomFields = async () => {
+    try {
+      const response = await templateService.getModuleTemplate(axiosPrivate, "Product");
+      setCustomFields(response.data?.keywords || []);
+    } catch (error) {
+      setCustomFields([]);
+    }
+  };
 
   const getProductDetail = async () => {
     setLoading(true);
@@ -30,6 +44,12 @@ const ProductDetail = ({ productId }) => {
         const response = await productService.getById(axiosPrivate, productId);
         setDataId(productId);
         setLatestData(response.data);
+        setCustomFieldValues(
+          (response.data.customFieldValues || []).map((v) => ({
+            keywordId: v.keywordId,
+            value: v.value,
+          }))
+        );
       }
     } catch (error) {
       setSnackbar({
@@ -65,16 +85,17 @@ const ProductDetail = ({ productId }) => {
     }
 
     setLoading(true);
+    const payload = { ...latestData, customFieldValues };
     try {
       if (dataId) {
-        await productService.update(axiosPrivate, dataId, latestData);
+        await productService.update(axiosPrivate, dataId, payload);
         setSnackbar({
           isOpen: true,
           status: "success",
           message: "商品情報の更新は正常に完了しました!",
         });
       } else {
-        const response = await productService.create(axiosPrivate, latestData);
+        const response = await productService.create(axiosPrivate, payload);
         setDataId(response.data);
         setSnackbar({
           isOpen: true,
@@ -95,6 +116,7 @@ const ProductDetail = ({ productId }) => {
   const handleClear = () => {
     setDataId();
     setLatestData({});
+    setCustomFieldValues([]);
   };
 
   return (
@@ -188,6 +210,11 @@ const ProductDetail = ({ productId }) => {
               ></textarea>
             </div>
           </Grid>
+          <CustomFieldsSection
+            fields={customFields}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
           <Grid item xs={12}>
             <div className="handle-button">
               <FormButton itemName="保存" type="submit" />

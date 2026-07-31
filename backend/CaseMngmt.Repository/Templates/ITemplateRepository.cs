@@ -15,5 +15,6 @@ namespace CaseMngmt.Repository.Templates
         Task<int> DeleteAsync(Guid id);
         Task<int> UpdateAsync(Template customer);
         Task<Template?> GetDefaultTemplateAsync();
+        Task<Template?> GetCompanyTemplateByModuleAsync(Guid companyId, string moduleType);
     }
 }

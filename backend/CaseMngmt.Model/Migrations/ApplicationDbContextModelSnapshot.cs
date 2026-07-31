@@ -795,6 +795,11 @@ namespace CaseMngmt.Models.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
+                    b.Property<string>("ModuleType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -809,6 +814,54 @@ namespace CaseMngmt.Models.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Template");
+                });
+
+            modelBuilder.Entity("CaseMngmt.Models.EntityKeywords.EntityKeyword", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("KeywordId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.HasIndex("KeywordId");
+
+                    b.ToTable("EntityKeyword");
                 });
 
             modelBuilder.Entity("CaseMngmt.Models.Types.Type", b =>
@@ -1230,6 +1283,17 @@ namespace CaseMngmt.Models.Migrations
                     b.Navigation("Customers");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("CaseMngmt.Models.EntityKeywords.EntityKeyword", b =>
+                {
+                    b.HasOne("CaseMngmt.Models.Keywords.Keyword", "Keyword")
+                        .WithMany()
+                        .HasForeignKey("KeywordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Keyword");
                 });
 
             modelBuilder.Entity("CaseMngmt.Models.Keywords.Keyword", b =>

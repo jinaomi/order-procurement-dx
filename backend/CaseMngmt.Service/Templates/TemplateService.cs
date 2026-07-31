@@ -36,7 +36,8 @@ namespace CaseMngmt.Service.Templates
             {
                 var template = new Template
                 {
-                    Name = !string.IsNullOrWhiteSpace(request.Name) ? request.Name : $"Template {DateTime.Today}"
+                    Name = !string.IsNullOrWhiteSpace(request.Name) ? request.Name : $"Template {DateTime.Today}",
+                    ModuleType = string.IsNullOrWhiteSpace(request.ModuleType) ? "Case" : request.ModuleType
                 };
 
                 var response = await _repository.AddAsync(template);
@@ -283,6 +284,64 @@ namespace CaseMngmt.Service.Templates
             try
             {
                 return await _repository.GetDefaultTemplateAsync();
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<TemplateViewModel?> GetModuleTemplateAsync(Guid companyId, string moduleType, bool isAdmin)
+        {
+            try
+            {
+                var template = await EnsureModuleTemplateAsync(companyId, moduleType);
+                if (template == null)
+                {
+                    return null;
+                }
+
+                var result = await _repository.GetTemplateViewModelByIdAsync(template.Id);
+                if (result != null && !isAdmin && result.Keywords != null)
+                {
+                    result.Keywords = result.Keywords.Where(k => !k.IsHiddenForUser && !k.IsHidden).ToList();
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<Template?> EnsureModuleTemplateAsync(Guid companyId, string moduleType)
+        {
+            try
+            {
+                var existing = await _repository.GetCompanyTemplateByModuleAsync(companyId, moduleType);
+                if (existing != null)
+                {
+                    return existing;
+                }
+
+                var template = new Template
+                {
+                    Name = $"{moduleType} Template",
+                    ModuleType = moduleType,
+                    IsDefault = false
+                };
+
+                var addResult = await _repository.AddAsync(template);
+                if (addResult <= 0) return null;
+
+                await _companyTemplateRepository.AddAsync(new CompanyTemplate
+                {
+                    CompanyId = companyId,
+                    TemplateId = template.Id
+                });
+
+                return template;
             }
             catch (Exception ex)
             {

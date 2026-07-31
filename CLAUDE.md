@@ -13,7 +13,15 @@ Tài liệu bổ sung:
 
 ## Current State (2026-07-31)
 
-**QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`. Repo này được tạo ra để làm điểm khởi đầu xây thêm module **仕入れ** (mua hàng/nhà cung cấp) — module này **CHƯA có thiết kế**, xem "Next Steps" bên dưới.
+**QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`. Repo này được tạo ra để làm điểm khởi đầu xây thêm module **仕入れ** (mua hàng/nhà cung cấp) — module này **có plan chi tiết đã chốt (Supplier/PurchaseOrder/GoodsReceipt/PurchaseInvoice, xem `docs/devlog/2026-07-31.md` mục "Vấn đề còn tồn đọng") nhưng CHƯA code**, vì phiên làm việc gần nhất đổi hướng sang xây nền tảng dynamic-field trước (xem đoạn dưới).
+
+**Dynamic Field / Custom Fields cho Product & Order (mới, 2026-07-31)**: đã tổng quát hoá cơ chế EAV vốn chỉ phục vụ 案件管理 (`Template`/`Keyword`/`Type`/`CaseKeyword`) để dùng chung được cho `Product`/`Order` — admin giờ tự thêm/bớt "field bổ sung" (không phải field lõi có logic nghiệp vụ) qua Form Builder (`KeywordBuilder.jsx`) có sẵn, không cần sửa code. Chi tiết kiến trúc:
+- `Template.ModuleType` (`"Case"`/`"Product"`/`"Order"`, default `"Case"` — không đổi hành vi Case cũ) phân biệt template thuộc module nào; 1 company giờ có nhiều `CompanyTemplate` (1 per module) thay vì giả định 1-template-duy-nhất như trước.
+- Bảng mới `EntityKeyword{EntityType, EntityId, KeywordId, Value}` (`CaseMngmt.Model|Repository|Service/EntityKeywords/`) — lưu giá trị custom field cho Product/Order, **tách biệt hoàn toàn** khỏi bảng `CaseKeyword` cũ (Case zero-touch, không rủi ro regression).
+- Field LÕI (`StockQuantity`, `UnitPrice`, `ProductionCapacityPerDay`, `Quantity`, `CustomerId`, `OrderDate`...) — những field có logic nghiệp vụ thật phụ thuộc (AI照合, trừ/cộng kho, PDF) — **vẫn là cột C# cố định**, KHÔNG đưa vào EAV. Chỉ field bổ sung mới dynamic.
+- Endpoint mới `GET /api/template/module?moduleType=` (`TemplateController.cs`) tự tạo template rỗng cho company nếu chưa có (self-healing, không cần backfill migration).
+- Frontend: `CustomFieldsSection.js` (mới, dùng chung) + section "カスタム項目" trong `ProductDetail.js`/`OrderDetail.js`. `GenericItems.js` được vá thêm case `"textarea"` còn thiếu từ trước (bug cũ của Case, giờ đã fix luôn).
+- **Đã test qua UI thật (Playwright headless + Edge, 2026-07-31)**: login → Form Builder thêm field mới cho Product/Order → tạo record có điền field → reload từ server → giá trị persist đúng, cho cả 2 module. Phát hiện + fix thêm 1 bug thật trong lúc test: field mới tạo mà để trống "最大文字数" bị lưu `MaxLength=0`, khiến `<input maxLength={0}>` chặn hoàn toàn việc gõ chữ — đã fix ở `GenericItems.js` (`maxLength={props.maxLength || undefined}`, cả case `"string"` và `"textarea"`). Chi tiết xem `docs/devlog/2026-07-31.md` phần "Test dynamic-field qua UI thật".
 
 Backend/frontend/ngrok của bản demo cũ (chạy từ `case-management`) đã dừng hẳn — hiện **không có demo nào đang chạy sống**. Repo này đã `npm install` + `dotnet restore`/build xong (0 lỗi), sẵn sàng chạy local; secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
 
@@ -36,7 +44,7 @@ Ngoài hệ thống Case/Template gốc mô tả bên dưới, project đã đư
 
 Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/AnthropicClient.cs`), model `claude-opus-4-8`, API key qua `dotnet user-secrets` (KHÔNG trong appsettings.json).
 
-**Build health (2026-07-31)**: `dotnet build` (backend) và `npm install` (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`).
+**Build health (2026-07-31)**: `dotnet build` (backend) và `npm run build` (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`). Đã verify thêm bằng cách chạy backend thật với LocalDB (`dotnet run`) — 2 migration mới (`AddTemplateModuleType`, `AddEntityKeywordTable`) áp dụng sạch, seed data không lỗi.
 
 **Demo/chia sẻ ra ngoài**: hiện **không có demo nào đang chạy sống** (đã dừng bản demo cũ chạy từ `case-management`). Khi cần dựng lại demo: `npm run build` (frontend) → mirror vào `wwwroot` (`robocopy ... /MIR`) → chạy backend với `--no-launch-profile` (né SpaProxy cũ trỏ thư mục không tồn tại) → `ngrok http 5178`. URL ngrok đổi mỗi lần restart trừ khi có static domain đã đặt riêng — xem devlog gần nhất để biết URL hiện tại nếu có.
 
@@ -44,11 +52,12 @@ Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/Anthr
 
 ## Next Steps
 
-1. **Thiết kế module 仕入れ (procurement/supplier)** — mục đích chính repo này được tạo ra, nhưng CHƯA có thiết kế gì cả (chưa có Supplier entity, PurchaseOrder, hay quyết định liên kết thế nào với `Product.StockQuantity` hiện có). Cần 1 phiên plan riêng trước khi code.
-2. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
-3. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
-4. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
-5. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
+1. **Thiết kế + code module 仕入れ (procurement/supplier)** — plan chi tiết đã chốt (Supplier với 締め日/支払サイト kiểu Nhật, PurchaseOrder→GoodsReceipt cộng ngược `StockQuantity` đối xứng với Invoice trừ kho, AI đọc 見積書/納品書 theo pattern `OrderIntakeUpload`) nhưng CHƯA thực thi — cần dựng lại plan (xem `docs/devlog/2026-07-31.md`) và code, dùng engine `EntityKeyword`/`ModuleType` mới ngay từ đầu thay vì schema cố định.
+2. Search/filter theo giá trị custom field trên `ProductSearch.js`/`OrderSearch.js` (cố ý để ngoài phạm vi phiên vừa rồi).
+3. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
+4. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
+5. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
+6. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
 
 Các next-step khác liên quan riêng tới `case-management` gốc (rotate AWS key hardcode trong repo đó, thêm `*.log` vào `.gitignore` gốc...) — không còn thuộc phạm vi làm việc, xem `docs/devlog/2026-07-31.md` nếu cần biết chi tiết.
 
@@ -178,12 +187,14 @@ Namespace: `CaseMngmt.Models.AutoMapper.CustomProfile`
 
 ### Migration
 
-- **dotnet CLI không có trên máy** — tạo migration file thủ công theo pattern EF Core
+- Tạo migration file **thủ công** theo pattern EF Core (đây vẫn là cách chính, kể cả khi `dotnet-ef` đã có sẵn — xem ghi chú dưới)
 - Namespace migration: `CaseMngmt.Models.Migrations`
 - Tên class phải match tên file, kế thừa `Migration`, có `Up()` và `Down()`
+- **Mỗi migration `.cs` cần 1 file `.Designer.cs` đi kèm** mang `[DbContext(typeof(ApplicationDbContext))]` + `[Migration("id")]` (id = tên file không có đuôi `.cs`) — **thiếu file này thì `db.Database.Migrate()` sẽ ÂM THẦM coi migration là đã áp dụng** (không báo lỗi lúc start), rồi crash runtime khi query/insert cột mới (`Invalid column name`). `BuildTargetModel(ModelBuilder modelBuilder) { }` để RỖNG là đủ — đây là pattern đã có sẵn trong repo (vd `20260529000001_AddIsHiddenForUser.Designer.cs`), không cần snapshot đầy đủ.
 - Cột NOT NULL mới: **bắt buộc có `defaultValue`** để an toàn với data hiện có
-- Sau khi tạo migration: cập nhật `ApplicationDbContextModelSnapshot.cs` thủ công
+- Sau khi tạo migration: cập nhật `ApplicationDbContextModelSnapshot.cs` thủ công (thêm property block + relationship block theo đúng vị trí — xem migration `AddEntityKeywordTable`/`AddTemplateModuleType` làm ví dụ)
 - Auto-apply khi startup: `db.Database.Migrate()` trong `Program.cs` (đã có sẵn)
+- **Đã thử `dotnet ef migrations add`** (2026-07-31) để tự sinh Designer.cs: THẤT BẠI vì snapshot hiện tại của repo có 1 lỗi tiềm ẩn không liên quan (`Order.OrderItems` navigation lỗi khi tooling load — do lịch sử migration toàn viết tay, chưa từng qua `dotnet ef`) — chưa sửa bug đó (ngoài phạm vi), vẫn ưu tiên viết tay theo pattern ở trên.
 
 ### Seed data (DbInitializerExtension)
 
@@ -346,6 +357,13 @@ Lý do: CaseKeyword data phải được bảo toàn dù field bị ẩn.
 Tất cả file frontend là `.js` hoặc `.jsx`. **Không tạo `.ts` hay `.tsx`**.
 Lý do: project đã bắt đầu với JS, không muốn migration cost.
 
+### 6. Dynamic Field cho Product/Order: hybrid, không full-EAV, bảng riêng khỏi CaseKeyword (2026-07-31)
+
+- `Template.ModuleType` (`"Case"`/`"Product"`/`"Order"`) phân biệt template theo module — quyết định #4 (Standard Template + Auto-clone) ở trên **chỉ áp dụng cho `ModuleType="Case"`**; `IsDefault=true` vẫn là duy nhất toàn hệ thống trên thực tế vì Product/Order template luôn tạo với `IsDefault=false` (không có khái niệm "Standard Template" cho 2 module này — chúng bắt đầu rỗng).
+- Field có logic nghiệp vụ phụ thuộc (`StockQuantity`, `UnitPrice`, `Quantity`...) **giữ nguyên là cột C# cố định**, KHÔNG đưa vào EAV — chỉ field bổ sung (không ảnh hưởng tính toán) mới dynamic qua bảng `EntityKeyword` mới.
+- `EntityKeyword` là bảng **riêng biệt** với `CaseKeyword` (không dùng chung/không migrate data cũ) dù cùng hình dạng generic — để zero-touch dữ liệu Case đang chạy.
+- Lý do chốt: xem `docs/devlog/2026-07-31.md` mục "Phiên tiếp theo... Quyết định quan trọng & lý do".
+
 ---
 
 ## Ràng buộc và quy tắc bắt buộc
@@ -381,7 +399,7 @@ Lý do: project đã bắt đầu với JS, không muốn migration cost.
 
 - **OS**: Windows 11 Pro
 - **Shell**: PowerShell (dùng PowerShell syntax, KHÔNG bash syntax cho file ops)
-- **dotnet CLI**: **đã có trên máy** (`C:\Program Files\dotnet\dotnet.exe`, SDK 10.0.302) — `dotnet build`/`restore`/`user-secrets` dùng bình thường. Riêng `dotnet ef migrations add` chưa xác nhận có EF Core tools global hay không — vẫn ưu tiên tạo migration file thủ công theo pattern bên dưới trừ khi xác nhận lại được.
+- **dotnet CLI**: **đã có trên máy** (`C:\Program Files\dotnet\dotnet.exe`, SDK 10.0.302) — `dotnet build`/`restore`/`user-secrets` dùng bình thường. **`dotnet-ef` global tool đã cài** (2026-07-31, pin version `6.0.25` khớp EF Core của project — bản mới nhất mặc định bị `FileLoadException` do version mismatch runtime với net6.0), nhưng `dotnet ef migrations add` vẫn KHÔNG dùng được do bug tiềm ẩn trong snapshot hiện có (xem mục "Migration" ở trên) — migration vẫn phải viết tay + kèm Designer.cs tối giản.
 - **npm**: có trong frontend/
 - **Database**: SQL Server (connection string trong appsettings)
 - **Auto-migration**: `db.Database.Migrate()` trong `Program.cs` — apply khi app start

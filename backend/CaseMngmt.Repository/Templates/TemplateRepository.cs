@@ -59,6 +59,7 @@ namespace CaseMngmt.Repository.Templates
                                               CreatedBy = tempTemplate.CreatedBy,
                                               CreatedDate = tempTemplate.CreatedDate,
                                               Name = tempTemplate.Name,
+                                              ModuleType = tempTemplate.ModuleType,
                                               UpdatedBy = tempTemplate.UpdatedBy,
                                               UpdatedDate = tempTemplate.UpdatedDate,
                                               Keywords = tempTemplate.Keywords
@@ -111,6 +112,7 @@ namespace CaseMngmt.Repository.Templates
                     {
                         Id = t.Id,
                         Name = t.Name,
+                        ModuleType = t.ModuleType,
                         CreatedBy = t.CreatedBy,
                         CreatedDate = t.CreatedDate,
                         UpdatedBy = t.UpdatedBy,
@@ -261,6 +263,25 @@ namespace CaseMngmt.Repository.Templates
             try
             {
                 return await _context.Template.FirstOrDefaultAsync(t => t.IsDefault && !t.Deleted);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<Template?> GetCompanyTemplateByModuleAsync(Guid companyId, string moduleType)
+        {
+            try
+            {
+                var query = from template in _context.Template
+                            join companyTemplate in _context.CompanyTemplate on template.Id equals companyTemplate.TemplateId
+                            where !template.Deleted
+                                && companyTemplate.CompanyId == companyId
+                                && template.ModuleType == moduleType
+                            select template;
+
+                return await query.FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {

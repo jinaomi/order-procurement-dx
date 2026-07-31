@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
+import CustomFieldsSection from "./until/CustomFieldsSection";
 import { Grid, Table, TableBody, TableCell, TableHead, TableRow, IconButton } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -9,6 +10,7 @@ import orderService from "../services/orderService";
 import productService from "../services/productService";
 import invoiceService from "../services/invoiceService";
 import aiMatchingService from "../services/aiMatchingService";
+import templateService from "../services/templateService";
 import * as Icons from "@mui/icons-material";
 import { Chip, Tooltip } from "@mui/material";
 
@@ -50,6 +52,8 @@ const OrderDetail = ({ orderId }) => {
   const [items, setItems] = useState([emptyRow()]);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dataId, setDataId] = useState();
   const [orderInfo, setOrderInfo] = useState(null);
@@ -85,6 +89,12 @@ const OrderDetail = ({ orderId }) => {
     } catch (error) {
       setProducts([]);
     }
+    try {
+      const templateResponse = await templateService.getModuleTemplate(axiosPrivate, "Order");
+      setCustomFields(templateResponse.data?.keywords || []);
+    } catch (error) {
+      setCustomFields([]);
+    }
   };
 
   const getOrderDetail = async (id) => {
@@ -110,6 +120,12 @@ const OrderDetail = ({ orderId }) => {
           productNameRaw: i.productNameRaw,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
+        }))
+      );
+      setCustomFieldValues(
+        (data.customFieldValues || []).map((v) => ({
+          keywordId: v.keywordId,
+          value: v.value,
         }))
       );
       await getInvoiceInfo(data.id);
@@ -275,6 +291,7 @@ const OrderDetail = ({ orderId }) => {
         quantity: Number(i.quantity),
         unitPrice: Number(i.unitPrice),
       })),
+      customFieldValues,
     };
 
     try {
@@ -318,6 +335,7 @@ const OrderDetail = ({ orderId }) => {
       note: "",
     });
     setItems([emptyRow()]);
+    setCustomFieldValues([]);
   };
 
   const total = items.reduce(
@@ -511,6 +529,11 @@ const OrderDetail = ({ orderId }) => {
             </div>
           </Grid>
 
+          <CustomFieldsSection
+            fields={customFields}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
           <Grid item xs={12}>
             <div className="section-item">
               <label className="section-label">備考</label>

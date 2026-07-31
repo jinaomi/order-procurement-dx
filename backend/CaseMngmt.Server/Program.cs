@@ -43,6 +43,8 @@ using CaseMngmt.Service.Ai;
 using CaseMngmt.Service.AiMatching;
 using CaseMngmt.Repository.AiMatching;
 using CaseMngmt.Service.Chat;
+using CaseMngmt.Repository.EntityKeywords;
+using CaseMngmt.Service.EntityKeywords;
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -151,6 +153,9 @@ builder.Services.AddTransient<IAiMatchingService, AiMatchingService>();
 builder.Services.AddTransient<IAiOrderExtractionService, AiOrderExtractionService>();
 builder.Services.AddTransient<IDashboardCommentService, DashboardCommentService>();
 builder.Services.AddTransient<IChatAssistantService, ChatAssistantService>();
+
+builder.Services.AddTransient<IEntityKeywordService, EntityKeywordService>();
+builder.Services.AddTransient<IEntityKeywordRepository, EntityKeywordRepository>();
 
 #endregion
 

@@ -88,6 +88,35 @@ namespace CaseMngmt.Server.Controllers
             }
         }
 
+        [HttpGet("module")]
+        public async Task<IActionResult> GetModuleTemplate(string moduleType)
+        {
+            if (string.IsNullOrEmpty(moduleType))
+            {
+                return BadRequest();
+            }
+
+            try
+            {
+                var companyId = User?.FindFirst("CompanyId")?.Value;
+                if (string.IsNullOrEmpty(companyId))
+                {
+                    return BadRequest();
+                }
+
+                var roleNames = User?.FindAll(ClaimTypes.Role)?.Select(x => x.Value).ToList() ?? new List<string>();
+                bool isAdmin = roleNames.Contains("Admin") || roleNames.Contains("SuperAdmin");
+
+                var result = await _templateService.GetModuleTemplateAsync(Guid.Parse(companyId), moduleType, isAdmin);
+                return result == null ? NotFound() : Ok(result);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(TemplateController), true, e);
+                return BadRequest();
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> Details(Guid templateId)
         {

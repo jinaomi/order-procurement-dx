@@ -6,6 +6,7 @@ using CaseMngmt.Models.Cases;
 using CaseMngmt.Models.Companies;
 using CaseMngmt.Models.CompanyTemplates;
 using CaseMngmt.Models.Customers;
+using CaseMngmt.Models.EntityKeywords;
 using CaseMngmt.Models.Invoices;
 using CaseMngmt.Models.KeywordRoles;
 using CaseMngmt.Models.Keywords;
@@ -144,6 +145,12 @@ namespace CaseMngmt.Models.Database
                 .HasForeignKey(e => e.OrderItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<EntityKeyword>()
+                .HasOne(e => e.Keyword)
+                .WithMany()
+                .HasForeignKey(e => e.KeywordId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             base.OnModelCreating(modelBuilder);
         }
 
@@ -162,5 +169,6 @@ namespace CaseMngmt.Models.Database
         public DbSet<Product> Product { get; set; }
         public DbSet<Invoice> Invoice { get; set; }
         public DbSet<OrderRiskLineResult> OrderRiskLineResult { get; set; }
+        public DbSet<EntityKeyword> EntityKeyword { get; set; }
     }
 }

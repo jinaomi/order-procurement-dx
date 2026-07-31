@@ -22,7 +22,8 @@ const FormSelection = (props) => {
           paddingLeft: "5px",
         },
         "& .MuiAutocomplete-endAdornment": {
-          top: "auto",
+          top: "50%",
+          transform: "translate(0, -50%)",
         },
       }}
       options={props.options}

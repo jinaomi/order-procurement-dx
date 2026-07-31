@@ -82,6 +82,12 @@ namespace CaseMngmt.Server.Controllers
                     {
                         await _templateService.CloneToCompanyAsync(defaultTemplate.Id, result.Value);
                     }
+
+                    // Product/Order modules start with an empty custom-field template (no
+                    // "standard" fields to clone) — created lazily here so the admin form
+                    // builder always has a template to attach fields to.
+                    await _templateService.EnsureModuleTemplateAsync(result.Value, "Product");
+                    await _templateService.EnsureModuleTemplateAsync(result.Value, "Order");
                 }
                 return result != null ? Ok(result) : BadRequest();
             }

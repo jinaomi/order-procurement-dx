@@ -3,6 +3,7 @@ using CaseMngmt.Models.Orders;
 using CaseMngmt.Repository.AiMatching;
 using CaseMngmt.Repository.Orders;
 using CaseMngmt.Repository.Products;
+using CaseMngmt.Service.EntityKeywords;
 
 namespace CaseMngmt.Service.Orders
 {
@@ -11,12 +12,16 @@ namespace CaseMngmt.Service.Orders
         private readonly IOrderRepository _repository;
         private readonly IProductRepository _productRepository;
         private readonly IOrderRiskRepository _riskRepository;
+        private readonly IEntityKeywordService _entityKeywordService;
 
-        public OrderService(IOrderRepository repository, IProductRepository productRepository, IOrderRiskRepository riskRepository)
+        private const string EntityType = "Order";
+
+        public OrderService(IOrderRepository repository, IProductRepository productRepository, IOrderRiskRepository riskRepository, IEntityKeywordService entityKeywordService)
         {
             _repository = repository;
             _productRepository = productRepository;
             _riskRepository = riskRepository;
+            _entityKeywordService = entityKeywordService;
         }
 
         public async Task<Guid?> CreateOrderAsync(OrderRequest request, Guid currentUserId)
@@ -76,7 +81,13 @@ namespace CaseMngmt.Service.Orders
                 order.Name = order.OrderNumber;
 
                 var result = await _repository.AddAsync(order);
-                return result > 0 ? order.Id : null;
+                if (result <= 0)
+                {
+                    return null;
+                }
+
+                await _entityKeywordService.ReplaceValuesAsync(EntityType, order.Id, request.CustomFieldValues, currentUserId);
+                return order.Id;
             }
             catch (Exception)
             {
@@ -132,7 +143,14 @@ namespace CaseMngmt.Service.Orders
             try
             {
                 var entity = await _repository.GetByIdAsync(id, companyId);
-                return entity == null ? null : MapToViewModel(entity);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                var result = MapToViewModel(entity);
+                result.CustomFieldValues = await _entityKeywordService.GetByEntityAsync(EntityType, id);
+                return result;
             }
             catch (Exception)
             {
@@ -197,7 +215,12 @@ namespace CaseMngmt.Service.Orders
                 entity.SubTotalAmount = subTotal;
                 entity.TotalAmount = subTotal + entity.TaxAmount;
 
-                return await _repository.UpdateAsync(entity, newItems);
+                var updateResult = await _repository.UpdateAsync(entity, newItems);
+                if (updateResult > 0)
+                {
+                    await _entityKeywordService.ReplaceValuesAsync(EntityType, entity.Id, request.CustomFieldValues, currentUserId);
+                }
+                return updateResult;
             }
             catch (Exception)
             {

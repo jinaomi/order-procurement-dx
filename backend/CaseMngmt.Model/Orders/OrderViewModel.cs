@@ -1,3 +1,5 @@
+using CaseMngmt.Models.EntityKeywords;
+
 namespace CaseMngmt.Models.Orders
 {
     public class OrderViewModel
@@ -22,5 +24,6 @@ namespace CaseMngmt.Models.Orders
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
         public List<OrderItemViewModel> OrderItems { get; set; } = new List<OrderItemViewModel>();
+        public List<EntityKeywordValue> CustomFieldValues { get; set; } = new();
     }
 }

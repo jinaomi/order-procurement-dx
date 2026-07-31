@@ -6,6 +6,7 @@ namespace CaseMngmt.Models.Templates
     public class TemplateRequest
     {
         public string? Name { get; set; }
+        public string? ModuleType { get; set; }
         public Guid CompanyId { get; set; }
         public List<KeywordRequest> KeywordRequests { get; set; } = new();
     }

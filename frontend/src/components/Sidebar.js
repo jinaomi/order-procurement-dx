@@ -229,6 +229,7 @@ const Sidebar = () => {
           </List>
         </Collapse>
       </List>
+      {/* 案件管理 — ẩn theo yêu cầu, giữ code để bật lại sau này
       <List>
         <ListItemButton onClick={() => handleClick("Case")} sx={hoverButton}>
           <ListItemIcon>
@@ -260,6 +261,7 @@ const Sidebar = () => {
           </List>
         </Collapse>
       </List>
+      */}
       <List>
         <ListItemButton onClick={() => handleClick("Order")} sx={hoverButton}>
           <ListItemIcon>
@@ -333,6 +335,7 @@ const Sidebar = () => {
           <ListItemText primary="経営ダッシュボード"></ListItemText>
         </ListItemButton>
       </List>
+      {/* 書類管理 — ẩn theo yêu cầu, giữ code để bật lại sau này
       <List>
         <ListItemButton
           sx={hoverButton}
@@ -344,6 +347,7 @@ const Sidebar = () => {
           <ListItemText primary="書類管理"></ListItemText>
         </ListItemButton>
       </List>
+      */}
       <List>
         <ListItemButton
           sx={hoverButton}

@@ -1,16 +1,19 @@
 ﻿using AutoMapper;
 using CaseMngmt.Models.Keywords;
 using CaseMngmt.Repository.Keywords;
+using CaseMngmt.Repository.EntityKeywords;
 
 namespace CaseMngmt.Service.Keywords
 {
     public class KeywordService : IKeywordService
     {
         private IKeywordRepository _repository;
+        private readonly IEntityKeywordRepository _entityKeywordRepository;
         private readonly IMapper _mapper;
-        public KeywordService(IKeywordRepository repository, IMapper mapper)
+        public KeywordService(IKeywordRepository repository, IEntityKeywordRepository entityKeywordRepository, IMapper mapper)
         {
             _repository = repository;
+            _entityKeywordRepository = entityKeywordRepository;
             _mapper = mapper;
         }
 
@@ -113,8 +116,11 @@ namespace CaseMngmt.Service.Keywords
         {
             try
             {
-                var hasCaseKeywords = await _repository.HasCaseKeywordsAsync(id);
-                if (hasCaseKeywords)
+                var moduleType = await _repository.GetModuleTypeByKeywordIdAsync(id);
+                var inUse = moduleType == "Case"
+                    ? await _repository.HasCaseKeywordsAsync(id)
+                    : await _entityKeywordRepository.HasUsageAsync(id);
+                if (inUse)
                 {
                     return -1;
                 }

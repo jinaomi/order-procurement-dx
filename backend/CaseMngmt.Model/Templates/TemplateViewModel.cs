@@ -7,6 +7,7 @@ namespace CaseMngmt.Models.Templates
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public string ModuleType { get; set; } = "Case";
         public Guid CreatedBy { get; set; }
         public Guid UpdatedBy { get; set; }
         public DateTime CreatedDate { get; set; }

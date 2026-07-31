@@ -1,3 +1,5 @@
+using CaseMngmt.Models.EntityKeywords;
+
 namespace CaseMngmt.Models.Products
 {
     public class ProductViewModel
@@ -14,5 +16,6 @@ namespace CaseMngmt.Models.Products
         public Guid UpdatedBy { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
+        public List<EntityKeywordValue> CustomFieldValues { get; set; } = new();
     }
 }

@@ -2,17 +2,22 @@ using AutoMapper;
 using CaseMngmt.Models;
 using CaseMngmt.Models.Products;
 using CaseMngmt.Repository.Products;
+using CaseMngmt.Service.EntityKeywords;
 
 namespace CaseMngmt.Service.Products
 {
     public class ProductService : IProductService
     {
         private IProductRepository _repository;
+        private readonly IEntityKeywordService _entityKeywordService;
         private readonly IMapper _mapper;
 
-        public ProductService(IProductRepository repository, IMapper mapper)
+        private const string EntityType = "Product";
+
+        public ProductService(IProductRepository repository, IEntityKeywordService entityKeywordService, IMapper mapper)
         {
             _repository = repository;
+            _entityKeywordService = entityKeywordService;
             _mapper = mapper;
         }
 
@@ -28,6 +33,7 @@ namespace CaseMngmt.Service.Products
 
                 if (result > 0)
                 {
+                    await _entityKeywordService.ReplaceValuesAsync(EntityType, entity.Id, product.CustomFieldValues, entity.CreatedBy);
                     return entity.Id;
                 }
                 return null;
@@ -94,7 +100,14 @@ namespace CaseMngmt.Service.Products
             try
             {
                 var entity = await _repository.GetByIdAsync(id);
-                return _mapper.Map<ProductViewModel>(entity);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                var result = _mapper.Map<ProductViewModel>(entity);
+                result.CustomFieldValues = await _entityKeywordService.GetByEntityAsync(EntityType, id);
+                return result;
             }
             catch (Exception)
             {
@@ -124,6 +137,7 @@ namespace CaseMngmt.Service.Products
                 entity.UpdatedDate = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(entity);
+                await _entityKeywordService.ReplaceValuesAsync(EntityType, entity.Id, product.CustomFieldValues, entity.UpdatedBy);
                 return 1;
             }
             catch (Exception)

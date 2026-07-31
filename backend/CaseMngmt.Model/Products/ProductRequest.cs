@@ -1,3 +1,4 @@
+using CaseMngmt.Models.EntityKeywords;
 using System.ComponentModel.DataAnnotations;
 
 namespace CaseMngmt.Models.Products
@@ -26,5 +27,7 @@ namespace CaseMngmt.Models.Products
 
         [Required]
         public Guid CompanyId { get; set; }
+
+        public List<EntityKeywordValueRequest> CustomFieldValues { get; set; } = new();
     }
 }
