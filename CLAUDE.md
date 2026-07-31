@@ -22,8 +22,13 @@ Tài liệu bổ sung:
 - Endpoint mới `GET /api/template/module?moduleType=` (`TemplateController.cs`) tự tạo template rỗng cho company nếu chưa có (self-healing, không cần backfill migration).
 - Frontend: `CustomFieldsSection.js` (mới, dùng chung) + section "カスタム項目" trong `ProductDetail.js`/`OrderDetail.js`. `GenericItems.js` được vá thêm case `"textarea"` còn thiếu từ trước (bug cũ của Case, giờ đã fix luôn).
 - **Đã test qua UI thật (Playwright headless + Edge, 2026-07-31)**: login → Form Builder thêm field mới cho Product/Order → tạo record có điền field → reload từ server → giá trị persist đúng, cho cả 2 module. Phát hiện + fix thêm 1 bug thật trong lúc test: field mới tạo mà để trống "最大文字数" bị lưu `MaxLength=0`, khiến `<input maxLength={0}>` chặn hoàn toàn việc gõ chữ — đã fix ở `GenericItems.js` (`maxLength={props.maxLength || undefined}`, cả case `"string"` và `"textarea"`). Chi tiết xem `docs/devlog/2026-07-31.md` phần "Test dynamic-field qua UI thật".
+- Section "カスタム項目" trên form Product/Order giờ hiển thị bằng `Divider`+`Chip` (đường kẻ + nhãn dạng viên ở giữa) thay vì chữ thường, để phân biệt rõ field cố định (phía trên) và field khách hàng tự thêm (phía dưới) — `CustomFieldsSection.js`.
+- **2 bug layout MUI pre-existing (không liên quan dynamic-field) phát hiện khi user browse app thật, đã fix**: (1) `FormSelection.js` — icon dropdown/X của Autocomplete lệch ra ngoài khung input (do `sx` cũ có `top: "auto"` sai, đổi thành `top: "50%", transform: "translate(0,-50%)"`), ảnh hưởng MỌI Autocomplete trong app (取引先, dòng 商品 trong bảng...). (2) `index.css` — `html { font-size: 24px }` toàn cục bị input MUI kế thừa qua `font: inherit`, làm vỡ khung tính padding/height mặc định MUI, lộ rõ nhất ở dialog "フィールド追加" (`KeywordBuilder.jsx`, field 順序/最大文字数 lệch chữ) — fix scoped bằng `.MuiInputBase-input, .MuiInputBase-root { font-size: 16px !important; }` + `:not(.MuiInputBase-input)` trên rule cũ, không đụng cỡ chữ 24px của form kiểu cũ ở chỗ khác. Chi tiết xem devlog phần "Chạy demo cho user browse + fix layout bug".
+- Menu **案件管理**/**書類管理** trong Sidebar đã ẩn theo yêu cầu — code JSX được **comment out** (không xoá) trong `Sidebar.js` để dễ bật lại sau này.
 
-Backend/frontend/ngrok của bản demo cũ (chạy từ `case-management`) đã dừng hẳn — hiện **không có demo nào đang chạy sống**. Repo này đã `npm install` + `dotnet restore`/build xong (0 lỗi), sẵn sàng chạy local; secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
+**Code đã push lên GitHub** (`origin/main`, repo `order-procurement-dx`, commit `ac28bf9`, 2026-07-31) — gồm toàn bộ dynamic-field engine + các fix layout + đổi UI trên.
+
+Backend (`localhost:5000`, Development) + frontend dev server (`localhost:3000`) **đang chạy nền** cho user browse demo cục bộ (không phải ngrok public) — chưa dừng, dừng khi user xác nhận xong việc. Secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
 
 Artifact User Guide/demo script (KHÔNG nằm trong git, chỉ tồn tại trên claude.ai): **https://claude.ai/code/artifact/d6ac3e4c-590e-4495-8b6c-2e7d39e42667**
 
@@ -44,7 +49,7 @@ Ngoài hệ thống Case/Template gốc mô tả bên dưới, project đã đư
 
 Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/AnthropicClient.cs`), model `claude-opus-4-8`, API key qua `dotnet user-secrets` (KHÔNG trong appsettings.json).
 
-**Build health (2026-07-31)**: `dotnet build` (backend) và `npm run build` (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`). Đã verify thêm bằng cách chạy backend thật với LocalDB (`dotnet run`) — 2 migration mới (`AddTemplateModuleType`, `AddEntityKeywordTable`) áp dụng sạch, seed data không lỗi.
+**Build health (2026-07-31)**: `dotnet build` (backend) và `npm run build`/dev server (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`). Đã verify thêm bằng cách chạy backend thật với LocalDB (`dotnet run`) — 2 migration mới (`AddTemplateModuleType`, `AddEntityKeywordTable`) áp dụng sạch, seed data không lỗi. Lưu ý: `dotnet build` sẽ báo lỗi file-lock (MSB3027) trong lúc backend đang chạy nền (`dotnet run`) — không phải lỗi code, chỉ cần dừng process đang chạy trước khi build lại.
 
 **Demo/chia sẻ ra ngoài**: hiện **không có demo nào đang chạy sống** (đã dừng bản demo cũ chạy từ `case-management`). Khi cần dựng lại demo: `npm run build` (frontend) → mirror vào `wwwroot` (`robocopy ... /MIR`) → chạy backend với `--no-launch-profile` (né SpaProxy cũ trỏ thư mục không tồn tại) → `ngrok http 5178`. URL ngrok đổi mỗi lần restart trừ khi có static domain đã đặt riêng — xem devlog gần nhất để biết URL hiện tại nếu có.
 
