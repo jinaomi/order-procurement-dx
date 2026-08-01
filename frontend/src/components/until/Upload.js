@@ -12,6 +12,7 @@ const Upload = (props) => {
           options={props.optionFileType}
           optionSelected={props.handleSelectedFileType}
           value={props.valueFileType}
+          disabled={props.disableFileType}
         />
       </div>
       <label className="section-label">書類名</label>

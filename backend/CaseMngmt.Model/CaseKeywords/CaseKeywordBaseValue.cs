@@ -6,6 +6,12 @@ namespace CaseMngmt.Models.CaseKeywords
     public class CaseKeywordBaseValue
     {
         public Guid? CaseId { get; set; }
+        // Populated for unified 書類管理 search results coming from EntityKeyword (PurchaseOrder/GoodsReceipt
+        // attachments etc.) so the frontend can tell which detail screen to open. Case-sourced rows default
+        // to "Case"/CaseId (set by DocumentController after calling the existing Case query, not here, to
+        // avoid touching CaseKeywordRepository.GetDocumentsAsync's already-working projection).
+        public string EntityType { get; set; } = "Case";
+        public Guid? EntityId { get; set; }
         [Required]
         public Guid KeywordId { get; set; }
         [MaxLength(256)]

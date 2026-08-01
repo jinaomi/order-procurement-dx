@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
+import DialogHandle from "./until/DialogHandle";
+import AttachedFilesList from "./until/AttachedFilesList";
 import { Grid, Table, TableBody, TableCell, TableHead, TableRow, Alert } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -31,6 +33,28 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
 
   // View-only mode state
   const [viewData, setViewData] = useState(null);
+
+  const [showAttachDialog, setShowAttachDialog] = useState(false);
+  const [optionFileType, setOptionFileType] = useState([]);
+  const [attachFileTypeId, setAttachFileTypeId] = useState(null);
+  const [attachRefreshToken, setAttachRefreshToken] = useState(0);
+
+  const handleAttach = async () => {
+    try {
+      const response = await axiosPrivate.get("/api/Type/file-type");
+      const options = (response.data || []).map((item) => ({ id: item.id, label: item.name }));
+      setOptionFileType(options);
+      setAttachFileTypeId((options.find((t) => t.label === "納品書") || {}).id || null);
+    } catch (error) {
+      setOptionFileType([]);
+    }
+    setShowAttachDialog(true);
+  };
+
+  const closeAttachDialog = () => {
+    setShowAttachDialog(false);
+    setAttachRefreshToken((v) => v + 1);
+  };
 
   useEffect(async () => {
     if (goodsReceiptId) {
@@ -205,8 +229,29 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
                 <b>備考：</b> {viewData.note}
               </Grid>
             )}
+            <Grid item xs={12}>
+              <div className="handle-button">
+                <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />
+              </div>
+            </Grid>
+            <Grid item xs={12}>
+              <AttachedFilesList
+                entityType="GoodsReceipt"
+                entityId={goodsReceiptId}
+                refreshToken={attachRefreshToken}
+              />
+            </Grid>
           </Grid>
         )}
+        <DialogHandle
+          open={showAttachDialog}
+          closeDialog={closeAttachDialog}
+          title="関連書類の添付"
+          optionFileType={optionFileType}
+          entityType="GoodsReceipt"
+          entityId={goodsReceiptId}
+          fixedFileTypeId={attachFileTypeId}
+        />
         <LoadingSpinner loading={loading}></LoadingSpinner>
         <FormSnackbar item={snackbar} setItem={setSnackbar} />
       </section>
@@ -223,6 +268,13 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
                 {warnings.map((w, idx) => (
                   <div key={idx}>{w}</div>
                 ))}
+              </Alert>
+            </Grid>
+          )}
+          {createdInfo && (
+            <Grid item xs={12}>
+              <Alert severity="success" action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />}>
+                入荷を登録しました。納品書の写真などを添付できます。
               </Alert>
             </Grid>
           )}
@@ -304,8 +356,26 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
               <FormButton itemName="登録" type="submit" />
             </div>
           </Grid>
+          {createdInfo && (
+            <Grid item xs={12}>
+              <AttachedFilesList
+                entityType="GoodsReceipt"
+                entityId={createdInfo.goodsReceiptId}
+                refreshToken={attachRefreshToken}
+              />
+            </Grid>
+          )}
         </Grid>
       </form>
+      <DialogHandle
+        open={showAttachDialog}
+        closeDialog={closeAttachDialog}
+        title="関連書類の添付"
+        optionFileType={optionFileType}
+        entityType="GoodsReceipt"
+        entityId={createdInfo ? createdInfo.goodsReceiptId : null}
+        fixedFileTypeId={attachFileTypeId}
+      />
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />
     </section>

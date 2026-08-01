@@ -1,6 +1,8 @@
-﻿using CaseMngmt.Models.CaseKeywords;
+﻿using CaseMngmt.Models;
+using CaseMngmt.Models.CaseKeywords;
 using CaseMngmt.Service.CaseKeywords;
 using CaseMngmt.Service.CompanyTemplates;
+using CaseMngmt.Service.EntityKeywords;
 using CaseMngmt.Service.FileUploads;
 using CaseMngmt.Service.Templates;
 using Microsoft.AspNetCore.Authorization;
@@ -14,22 +16,30 @@ namespace CaseMngmt.Server.Controllers
     [Route("api/[controller]")]
     public class DocumentController : ControllerBase
     {
+        // Entity types (outside 案件管理) whose attachments should also surface in 書類管理 search.
+        // Not paginated at the DB level like Case documents (see Search) — acceptable for the low
+        // per-company volume these two modules produce; only fetched on page 1 to avoid duplicating
+        // the same rows on every page of the Case-paginated result.
+        private static readonly List<string> UnifiedSearchEntityTypes = new() { "PurchaseOrder", "GoodsReceipt" };
+
         private readonly ILogger<DocumentController> _logger;
         private readonly IFileUploadService _fileUploadService;
         private readonly ITemplateService _templateService;
         private readonly ICaseKeywordService _caseKeywordService;
         private readonly ICompanyTemplateService _companyTemplateService;
+        private readonly IEntityKeywordService _entityKeywordService;
         private readonly IConfiguration _configuration;
 
         public DocumentController(ILogger<DocumentController> logger,
             IFileUploadService fileUploadService, ITemplateService templateService, ICaseKeywordService caseKeywordService,
-            ICompanyTemplateService companyTemplateService, IConfiguration configuration)
+            ICompanyTemplateService companyTemplateService, IEntityKeywordService entityKeywordService, IConfiguration configuration)
         {
             _logger = logger;
             _fileUploadService = fileUploadService;
             _templateService = templateService;
             _caseKeywordService = caseKeywordService;
             _companyTemplateService = companyTemplateService;
+            _entityKeywordService = entityKeywordService;
             _configuration = configuration;
         }
 
@@ -113,6 +123,28 @@ namespace CaseMngmt.Server.Controllers
                 };
 
                 var result = await _caseKeywordService.GetDocumentsAsync(searchRequest);
+                if (result == null)
+                {
+                    return BadRequest();
+                }
+
+                foreach (var item in result.Items)
+                {
+                    item.EntityType = "Case";
+                    item.EntityId = item.CaseId;
+                }
+
+                if (searchRequest.PageNumber <= 1)
+                {
+                    var entityDocs = await _entityKeywordService.GetDocumentFilesAsync(
+                        Guid.Parse(companyId), UnifiedSearchEntityTypes, request.FileTypeId);
+                    if (entityDocs.Count > 0)
+                    {
+                        result.Items = entityDocs.Concat(result.Items);
+                        result.TotalCount += entityDocs.Count;
+                    }
+                }
+
                 return Ok(result);
             }
             catch (Exception e)

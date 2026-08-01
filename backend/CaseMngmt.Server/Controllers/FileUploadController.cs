@@ -1,9 +1,12 @@
 ﻿using CaseMngmt.Models;
 using CaseMngmt.Models.CaseKeywords;
+using CaseMngmt.Models.EntityKeywords;
 using CaseMngmt.Models.FileUploads;
 using CaseMngmt.Service.CaseKeywords;
 using CaseMngmt.Service.CompanyTemplates;
+using CaseMngmt.Service.EntityKeywords;
 using CaseMngmt.Service.FileUploads;
+using CaseMngmt.Service.Templates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
@@ -19,14 +22,18 @@ namespace CaseMngmt.Server.Controllers
         private readonly IFileUploadService _fileUploadService;
         private readonly ICaseKeywordService _caseKeywordService;
         private readonly ICompanyTemplateService _companyTemplateService;
+        private readonly IEntityKeywordService _entityKeywordService;
+        private readonly ITemplateService _templateService;
         private readonly IConfiguration _configuration;
 
-        public FileUploadController(ILogger<FileUploadController> logger, IFileUploadService fileUploadService, ICaseKeywordService caseKeywordService, ICompanyTemplateService companyTemplateService, IConfiguration configuration)
+        public FileUploadController(ILogger<FileUploadController> logger, IFileUploadService fileUploadService, ICaseKeywordService caseKeywordService, ICompanyTemplateService companyTemplateService, IEntityKeywordService entityKeywordService, ITemplateService templateService, IConfiguration configuration)
         {
             _logger = logger;
             _fileUploadService = fileUploadService;
             _caseKeywordService = caseKeywordService;
             _companyTemplateService = companyTemplateService;
+            _entityKeywordService = entityKeywordService;
+            _templateService = templateService;
             _configuration = configuration;
         }
 
@@ -185,6 +192,162 @@ namespace CaseMngmt.Server.Controllers
                 }
 
                 return Ok();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(FileUploadController), true, e);
+                return BadRequest();
+            }
+        }
+
+        [HttpPost]
+        [Route("UploadEntity")]
+        public async Task<IActionResult> UploadEntityFile([FromForm] EntityFileUpload fileUploadRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                if (fileUploadRequest.FileToUpload == null)
+                {
+                    return BadRequest();
+                }
+
+                var awsSetting = GetAWSSetting();
+                var fileSetting = GetFileUploadSetting();
+
+                if (!fileUploadRequest.Validate(fileSetting))
+                {
+                    return BadRequest("Your file is not supported");
+                }
+
+                var companyId = User?.FindFirst("CompanyId")?.Value;
+                if (string.IsNullOrEmpty(companyId))
+                {
+                    return BadRequest();
+                }
+                var currentUserId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return BadRequest();
+                }
+
+                var template = await _templateService.EnsureModuleTemplateAsync(Guid.Parse(companyId), fileUploadRequest.EntityType);
+                if (template == null)
+                {
+                    return BadRequest();
+                }
+
+                var uploadResult = await _fileUploadService.UploadEntityFileAsync(fileUploadRequest, fileSetting, awsSetting);
+                if (uploadResult != null)
+                {
+                    var result = await _entityKeywordService.AddFileToEntityKeywordAsync(
+                        fileUploadRequest.EntityType, fileUploadRequest.EntityId, fileUploadRequest.FileTypeId, uploadResult, template.Id, Guid.Parse(currentUserId));
+                    return result != null ? Ok(new FileResponse
+                    {
+                        FileName = uploadResult.FileName,
+                        FilePath = uploadResult.FilePath,
+                        KeywordId = result.Value,
+                        IsImage = uploadResult.IsImage,
+                    }) : BadRequest();
+                }
+
+                return BadRequest();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(FileUploadController), true, e);
+                return BadRequest();
+            }
+        }
+
+        [HttpPost]
+        [Route("DownloadEntity")]
+        public async Task<IActionResult> DownloadEntityFile(DownloadEntityFileRequest request)
+        {
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.FileName) || string.IsNullOrEmpty(request.EntityType))
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var awsSetting = GetAWSSetting();
+                var fileSetting = GetFileUploadSetting();
+                var filePath = await _fileUploadService.GetEntityFilePath(request.FileName, request.EntityType, request.EntityId, fileSetting, awsSetting);
+                if (filePath == null)
+                {
+                    return BadRequest();
+                }
+
+                if (awsSetting == null)
+                {
+                    var provider = new FileExtensionContentTypeProvider();
+                    if (!provider.TryGetContentType(filePath, out var contenttype))
+                    {
+                        contenttype = "application/octet-stream";
+                    }
+
+                    var bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                    string file = Convert.ToBase64String(bytes);
+                    return Ok(file);
+                }
+                else
+                {
+                    var result = await _fileUploadService.DownloadFileS3Async(filePath, awsSetting);
+                    string file = Convert.ToBase64String(result);
+                    return Ok(file);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(FileUploadController), true, e);
+                return BadRequest();
+            }
+        }
+
+        [HttpPut]
+        [Route("DeleteEntity")]
+        public async Task<IActionResult> DeleteEntityFile(DeleteEntityFileRequest request)
+        {
+            if (!ModelState.IsValid || string.IsNullOrEmpty(request.FileName) || string.IsNullOrEmpty(request.EntityType))
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var awsSetting = GetAWSSetting();
+                var fileSetting = GetFileUploadSetting();
+
+                var deleteResult = await _fileUploadService.DeleteEntityFileAsync(request.FileName, request.EntityType, request.EntityId, fileSetting, awsSetting);
+                if (deleteResult > 0)
+                {
+                    var result = await _entityKeywordService.DeleteFileEntityKeywordAsync(request.EntityType, request.EntityId, request.KeywordId);
+                    return result > 0 ? Ok(result) : BadRequest();
+                }
+
+                return BadRequest();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(FileUploadController), true, e);
+                return BadRequest();
+            }
+        }
+
+        [HttpGet]
+        [Route("Entity")]
+        public async Task<IActionResult> GetEntityFiles(string entityType, Guid entityId)
+        {
+            if (string.IsNullOrEmpty(entityType) || entityId == Guid.Empty)
+            {
+                return BadRequest();
+            }
+            try
+            {
+                var result = await _entityKeywordService.GetFileKeywordsByEntityAsync(entityType, entityId);
+                return Ok(result);
             }
             catch (Exception e)
             {

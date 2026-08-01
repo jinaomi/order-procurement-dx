@@ -29,7 +29,6 @@ import Typography from "@mui/material/Typography";
 import { Collapse, createTheme } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import CustomerSearch from "./CustomerSearch";
-import CustomerDetail from "./CustomerDetail";
 import CaseSearch from "./CaseSearch";
 import CaseDetail from "./CaseDetail";
 import DocumentSearch from "./document-management/DocumentSearch";
@@ -65,13 +64,12 @@ const Sidebar = () => {
   const [drawerWidth, setDrawerWidth] = React.useState(DEFAULT_DRAWER_WIDTH);
   const isResizing = React.useRef(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [customerOpen, setCustomerOpen] = React.useState(false);
   const [caseOpen, setCaseOpen] = React.useState(false);
   const [orderOpen, setOrderOpen] = React.useState(false);
   const [supplierOpen, setSupplierOpen] = React.useState(false);
   const [header, setHeader] = React.useState();
+  const [activeKey, setActiveKey] = React.useState(null);
   const [caseId, setCaseDetail] = React.useState("");
-  const [customerId, setCustomerDetail] = React.useState("");
   const navigate = useNavigate();
   const { auth } = useAuth();
   const isSuperAdmin = auth?.roles?.includes("SuperAdmin");
@@ -118,13 +116,7 @@ const Sidebar = () => {
   const mapPage = (page) => {
     switch (page) {
       case "Customer":
-        setCustomerOpen(!customerOpen);
-        break;
-      case "Search Customer":
         setHeader("顧客情報の検索");
-        break;
-      case "Create Customer":
-        setHeader("顧客情報");
         break;
       case "Case":
         setCaseOpen(!caseOpen);
@@ -178,7 +170,7 @@ const Sidebar = () => {
         setHeader("仕入請求書管理");
         break;
       case "Invoice Management":
-        setHeader("請求書管理");
+        setHeader("受注請求書管理");
         break;
       case "Sales Dashboard":
         setHeader("経営ダッシュボード");
@@ -196,9 +188,15 @@ const Sidebar = () => {
     setMobileOpen(!mobileOpen);
   };
 
+  // "Case"/"Order"/"Supplier" only expand/collapse their parent menu — they don't map to an
+  // actual page, so they should never be marked as the "selected" item.
+  const TOGGLE_ONLY_KEYS = ["Case", "Order", "Supplier"];
+
   const handleClick = (item) => {
     setCaseDetail("");
-    setCustomerDetail("");
+    if (!TOGGLE_ONLY_KEYS.includes(item)) {
+      setActiveKey(item);
+    }
     mapPage(item);
   };
 
@@ -211,6 +209,13 @@ const Sidebar = () => {
       backgroundColor: "#0E563B",
     },
     "&:hover .MuiListItemIcon-root": {
+      color: "#fff",
+    },
+    "&.Mui-selected, &.Mui-selected:hover": {
+      backgroundColor: "#11596F",
+      color: "#fff",
+    },
+    "&.Mui-selected .MuiListItemIcon-root": {
       color: "#fff",
     },
   };
@@ -245,44 +250,14 @@ const Sidebar = () => {
       <List>
         <ListItemButton
           onClick={() => handleClick("Customer")}
+          selected={activeKey === "Customer"}
           sx={hoverButton}
         >
           <ListItemIcon>
             <BusinessIcon />
           </ListItemIcon>
           <ListItemText primary="顧客情報管理"></ListItemText>
-          {customerOpen ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
-        <Collapse in={customerOpen} timeout="auto" unmountOnExit>
-          <List
-            component="div"
-            disablePadding
-            sx={{
-              ml: "20px",
-              borderLeft: "3px solid #cfe0e6",
-              backgroundColor: "rgba(17, 89, 111, 0.03)",
-            }}
-          >
-            <ListItemButton
-              sx={hoverChildButton}
-              onClick={() => handleClick("Search Customer")}
-            >
-              <ListItemIcon>
-                <SearchIcon />
-              </ListItemIcon>
-              <ListItemText primary="顧客検索" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              onClick={() => handleClick("Create Customer")}
-            >
-              <ListItemIcon>
-                <AddBusinessIcon />
-              </ListItemIcon>
-              <ListItemText primary="顧客作成" />
-            </ListItemButton>
-          </List>
-        </Collapse>
       </List>
       {/* 案件管理 — ẩn theo yêu cầu, giữ code để bật lại sau này
       <List>
@@ -326,6 +301,18 @@ const Sidebar = () => {
       </List>
       */}
       <List>
+        <ListItemButton
+          sx={hoverButton}
+          selected={activeKey === "Product Management"}
+          onClick={() => handleClick("Product Management")}
+        >
+          <ListItemIcon>
+            <Inventory2Icon />
+          </ListItemIcon>
+          <ListItemText primary="商品・在庫管理"></ListItemText>
+        </ListItemButton>
+      </List>
+      <List>
         <ListItemButton onClick={() => handleClick("Order")} sx={hoverButton}>
           <ListItemIcon>
             <ShoppingCartIcon />
@@ -345,6 +332,7 @@ const Sidebar = () => {
           >
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Search Order"}
               onClick={() => handleClick("Search Order")}
             >
               <ListItemIcon>
@@ -354,6 +342,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Create Order"}
               onClick={() => handleClick("Create Order")}
             >
               <ListItemIcon>
@@ -363,6 +352,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Upload Order"}
               onClick={() => handleClick("Upload Order")}
             >
               <ListItemIcon>
@@ -370,19 +360,18 @@ const Sidebar = () => {
               </ListItemIcon>
               <ListItemText primary="受注アップロード（AI）" />
             </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              selected={activeKey === "Invoice Management"}
+              onClick={() => handleClick("Invoice Management")}
+            >
+              <ListItemIcon>
+                <ReceiptLongIcon />
+              </ListItemIcon>
+              <ListItemText primary="受注請求書管理" />
+            </ListItemButton>
           </List>
         </Collapse>
-      </List>
-      <List>
-        <ListItemButton
-          sx={hoverButton}
-          onClick={() => handleClick("Product Management")}
-        >
-          <ListItemIcon>
-            <Inventory2Icon />
-          </ListItemIcon>
-          <ListItemText primary="商品・在庫管理"></ListItemText>
-        </ListItemButton>
       </List>
       <List>
         <ListItemButton onClick={() => handleClick("Supplier")} sx={hoverButton}>
@@ -404,6 +393,7 @@ const Sidebar = () => {
           >
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Search Supplier"}
               onClick={() => handleClick("Search Supplier")}
             >
               <ListItemIcon>
@@ -413,6 +403,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Search Purchase Order"}
               onClick={() => handleClick("Search Purchase Order")}
             >
               <ListItemIcon>
@@ -422,6 +413,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Upload Purchase Order"}
               onClick={() => handleClick("Upload Purchase Order")}
             >
               <ListItemIcon>
@@ -431,6 +423,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Search Goods Receipt"}
               onClick={() => handleClick("Search Goods Receipt")}
             >
               <ListItemIcon>
@@ -440,6 +433,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Upload Goods Receipt"}
               onClick={() => handleClick("Upload Goods Receipt")}
             >
               <ListItemIcon>
@@ -449,6 +443,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Reorder Suggestions"}
               onClick={() => handleClick("Reorder Suggestions")}
             >
               <ListItemIcon>
@@ -458,6 +453,7 @@ const Sidebar = () => {
             </ListItemButton>
             <ListItemButton
               sx={hoverChildButton}
+              selected={activeKey === "Purchase Invoice Management"}
               onClick={() => handleClick("Purchase Invoice Management")}
             >
               <ListItemIcon>
@@ -471,17 +467,7 @@ const Sidebar = () => {
       <List>
         <ListItemButton
           sx={hoverButton}
-          onClick={() => handleClick("Invoice Management")}
-        >
-          <ListItemIcon>
-            <ReceiptLongIcon />
-          </ListItemIcon>
-          <ListItemText primary="請求書管理"></ListItemText>
-        </ListItemButton>
-      </List>
-      <List>
-        <ListItemButton
-          sx={hoverButton}
+          selected={activeKey === "Sales Dashboard"}
           onClick={() => handleClick("Sales Dashboard")}
         >
           <ListItemIcon>
@@ -490,10 +476,10 @@ const Sidebar = () => {
           <ListItemText primary="経営ダッシュボード"></ListItemText>
         </ListItemButton>
       </List>
-      {/* 書類管理 — ẩn theo yêu cầu, giữ code để bật lại sau này
       <List>
         <ListItemButton
           sx={hoverButton}
+          selected={activeKey === "Document Search"}
           onClick={() => handleClick("Document Search")}
         >
           <ListItemIcon>
@@ -502,10 +488,10 @@ const Sidebar = () => {
           <ListItemText primary="書類管理"></ListItemText>
         </ListItemButton>
       </List>
-      */}
       <List>
         <ListItemButton
           sx={hoverButton}
+          selected={activeKey === "Chat Assistant"}
           onClick={() => handleClick("Chat Assistant")}
         >
           <ListItemIcon>
@@ -515,30 +501,45 @@ const Sidebar = () => {
         </ListItemButton>
       </List>
       {isSuperAdmin && (
-        <List>
-          <ListItemButton
-            sx={hoverButton}
-            onClick={() => navigate("/admin/templates")}
+        <>
+          <Divider sx={{ mt: 1 }} />
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              pl: 2,
+              pt: 1.5,
+              pb: 0.5,
+              color: "#8a97a0",
+              letterSpacing: "0.08em",
+              fontWeight: 700,
+            }}
           >
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="テンプレート管理"></ListItemText>
-          </ListItemButton>
-        </List>
-      )}
-      {isSuperAdmin && (
-        <List>
-          <ListItemButton
-            sx={hoverButton}
-            onClick={() => navigate("/admin/users")}
-          >
-            <ListItemIcon>
-              <PeopleIcon />
-            </ListItemIcon>
-            <ListItemText primary="ユーザー管理"></ListItemText>
-          </ListItemButton>
-        </List>
+            設定
+          </Typography>
+          <List>
+            <ListItemButton
+              sx={hoverButton}
+              onClick={() => navigate("/admin/templates")}
+            >
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="テンプレート管理"></ListItemText>
+            </ListItemButton>
+          </List>
+          <List>
+            <ListItemButton
+              sx={hoverButton}
+              onClick={() => navigate("/admin/users")}
+            >
+              <ListItemIcon>
+                <PeopleIcon />
+              </ListItemIcon>
+              <ListItemText primary="ユーザー管理"></ListItemText>
+            </ListItemButton>
+          </List>
+        </>
       )}
       {/* Footer (System Name) */}
       <div
@@ -560,7 +561,7 @@ const Sidebar = () => {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ display: "flex" }}>
+      <Box sx={{ display: "flex", width: "100%", minHeight: "100vh" }}>
         <AppBar
           position="fixed"
           sx={{
@@ -579,14 +580,12 @@ const Sidebar = () => {
               <MenuIcon />
             </IconButton>
             <Typography
-              variant="h3"
-              noWrap
+              variant="subtitle1"
               component="div"
               sx={{
-                fontWeight: "bold",
-                lineHeight: "180%",
                 flexGrow: 1,
-                textAlign: "center",
+                fontWeight: 500,
+                color: "#5b6b73",
               }}
             >
               {header}
@@ -653,7 +652,6 @@ const Sidebar = () => {
           }}
         >
           {header === "顧客情報の検索" && <CustomerSearch />}
-          {header === "顧客情報" && <CustomerDetail customerId={customerId} />}
           {header === "案件の検索" && <CaseSearch />}
           {header === "案件情報" && <CaseDetail caseId={caseId} />}
           {header === "書類管理" && <DocumentSearch />}
@@ -668,7 +666,7 @@ const Sidebar = () => {
           {header === "入荷アップロード（AI）" && <GoodsReceiptIntakeUpload />}
           {header === "発注提案" && <ReorderSuggestions />}
           {header === "仕入請求書管理" && <PurchaseInvoiceSearch />}
-          {header === "請求書管理" && <InvoiceSearch />}
+          {header === "受注請求書管理" && <InvoiceSearch />}
           {header === "経営ダッシュボード" && <SalesDashboard />}
           {header === "AIチャット" && <ChatAssistant />}
         </Box>

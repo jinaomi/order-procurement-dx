@@ -25,7 +25,15 @@ import {
 } from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import CaseDetail from "../CaseDetail.js";
+import PurchaseOrderDetail from "../PurchaseOrderDetail.js";
+import GoodsReceiptDetail from "../GoodsReceiptDetail.js";
 import FormSnackbar from "../until/FormSnackbar.js";
+
+const entityTypeLabel = {
+  Case: "案件",
+  PurchaseOrder: "発注書",
+  GoodsReceipt: "入荷",
+};
 
 const DocumentSearch = () => {
   const [showList, setShowList] = useState(true);
@@ -56,7 +64,7 @@ const DocumentSearch = () => {
   const [showDialogPreview, setShowDialogPreview] = useState(false);
 
   const [showDialogCase, setShowDialogCase] = useState(false);
-  const [caseId, setCaseId] = useState();
+  const [viewTarget, setViewTarget] = useState({ entityType: "Case", entityId: null });
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [showBulkDeleteAlert, setShowBulkDeleteAlert] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -166,11 +174,11 @@ const DocumentSearch = () => {
   const viewOrDownloadFile = async (item, type) => {
     // type = download / view
     setLoading(true);
-    let getFileUrl = `/api/FileUpload/Download`;
-    let payload = {
-      fileName: item.keywordName,
-      caseId: item.caseId,
-    };
+    const isCase = !item.entityType || item.entityType === "Case";
+    const getFileUrl = isCase ? `/api/FileUpload/Download` : `/api/FileUpload/DownloadEntity`;
+    const payload = isCase
+      ? { fileName: item.keywordName, caseId: item.caseId }
+      : { fileName: item.keywordName, entityType: item.entityType, entityId: item.entityId };
     await axiosPrivate
       .post(getFileUrl, payload)
       .then(async (response) => {
@@ -207,7 +215,8 @@ const DocumentSearch = () => {
   const handleClickDelete = async (e) => {
     setLoading(true);
     e.preventDefault();
-    var deleteURL = "/api/FileUpload/Delete";
+    const isCase = !deleteItem.entityType || deleteItem.entityType === "Case";
+    const deleteURL = isCase ? "/api/FileUpload/Delete" : "/api/FileUpload/DeleteEntity";
     await axiosPrivate
       .put(deleteURL, deleteItem)
       .then(async (res) => {
@@ -244,29 +253,41 @@ const DocumentSearch = () => {
     e.preventDefault();
     setLoading(true);
     const items = listItem && listItem.items ? listItem.items : [];
-    const payload = items
-      .filter((f) => selectedFiles.includes(f.keywordId))
-      .map((f) => ({ keywordId: f.keywordId, caseId: f.caseId, fileName: f.keywordName }));
-    await axiosPrivate
-      .put("/api/FileUpload/BulkDelete", payload)
-      .then(async () => {
-        setShowBulkDeleteAlert(false);
-        await getFiles(e);
-        setSnackbar({ isOpen: true, status: "success", message: "選択した書類を削除しました。" });
-      })
-      .catch(() => {
-        setSnackbar({
-          isOpen: true,
-          status: "error",
-          message: "エラーが発生しました。再試行するか、サポートにお問い合わせください。",
+    const targets = items.filter((f) => selectedFiles.includes(f.keywordId));
+    const caseTargets = targets.filter((f) => !f.entityType || f.entityType === "Case");
+    const entityTargets = targets.filter((f) => f.entityType && f.entityType !== "Case");
+    try {
+      if (caseTargets.length > 0) {
+        const payload = caseTargets.map((f) => ({ keywordId: f.keywordId, caseId: f.caseId, fileName: f.keywordName }));
+        await axiosPrivate.put("/api/FileUpload/BulkDelete", payload);
+      }
+      for (const f of entityTargets) {
+        await axiosPrivate.put("/api/FileUpload/DeleteEntity", {
+          keywordId: f.keywordId,
+          entityType: f.entityType,
+          entityId: f.entityId,
+          fileName: f.keywordName,
         });
+      }
+      setShowBulkDeleteAlert(false);
+      await getFiles(e);
+      setSnackbar({ isOpen: true, status: "success", message: "選択した書類を削除しました。" });
+    } catch (error) {
+      setSnackbar({
+        isOpen: true,
+        status: "error",
+        message: "エラーが発生しました。再試行するか、サポートにお問い合わせください。",
       });
+    }
     setLoading(false);
   };
 
-  const handleClickViewCase = (caseId) => {
+  const handleClickViewDetail = (item) => {
     setLoading(true);
-    setCaseId(caseId);
+    setViewTarget({
+      entityType: item.entityType || "Case",
+      entityId: item.entityType && item.entityType !== "Case" ? item.entityId : item.caseId,
+    });
     setShowDialogCase(true);
     setLoading(false);
   };
@@ -352,6 +373,7 @@ const DocumentSearch = () => {
                   />
                 </TableCell>
                 <TableCell>書類名</TableCell>
+                <TableCell>種別</TableCell>
                 <TableCell style={{ minWidth: "400px", textAlign: "right" }}>操作</TableCell>
               </TableRow>
             </TableHead>
@@ -375,6 +397,7 @@ const DocumentSearch = () => {
                       >
                         <Truncate str={item.keywordName} maxLength={20} />
                       </TableCell>
+                      <TableCell>{entityTypeLabel[item.entityType] || item.entityType || "案件"}</TableCell>
                       <TableCell
                         style={{
                           minWidth: "400px",
@@ -419,6 +442,8 @@ const DocumentSearch = () => {
                               let itemDelete = {
                                 keywordId: item.keywordId,
                                 caseId: item.caseId,
+                                entityType: item.entityType,
+                                entityId: item.entityId,
                                 fileName: item.keywordName,
                               };
                               setDeleteItem(itemDelete);
@@ -432,10 +457,10 @@ const DocumentSearch = () => {
                             startIcon={<Icons.Assignment />}
                             style={{ marginTop: "5px" }}
                             onClick={() => {
-                              handleClickViewCase(item.caseId);
+                              handleClickViewDetail(item);
                             }}
                           >
-                            案件表示
+                            詳細表示
                           </Button>{" "}
                         </div>
                       </TableCell>
@@ -444,7 +469,7 @@ const DocumentSearch = () => {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3}>
+                  <TableCell colSpan={4}>
                     <span style={{ color: "#000" }}>
                       表示する項目がありません。
                     </span>
@@ -645,7 +670,15 @@ const DocumentSearch = () => {
         open={showDialogCase}
         closeDialog={() => setShowDialogCase(false)}
       >
-        <CaseDetail caseId={caseId} createType={false} />
+        {viewTarget.entityType === "PurchaseOrder" && (
+          <PurchaseOrderDetail purchaseOrderId={viewTarget.entityId} />
+        )}
+        {viewTarget.entityType === "GoodsReceipt" && (
+          <GoodsReceiptDetail goodsReceiptId={viewTarget.entityId} />
+        )}
+        {(!viewTarget.entityType || viewTarget.entityType === "Case") && (
+          <CaseDetail caseId={viewTarget.entityId} createType={false} />
+        )}
       </ContentDialog>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />
     </section>

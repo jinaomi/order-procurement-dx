@@ -174,6 +174,36 @@ const GoodsReceiptIntakeUpload = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Attaches the original 納品書 image that was uploaded for AI extraction to the newly created
+  // goods receipt, so the source document isn't discarded once the data has been extracted from it.
+  // Best-effort: the goods receipt itself is already saved by this point, so a failure here is
+  // swallowed rather than surfaced as an error to avoid implying the whole registration failed.
+  const attachSourceFile = async (goodsReceiptId) => {
+    if (!file || !goodsReceiptId) {
+      return;
+    }
+    try {
+      const typeResponse = await axiosPrivate.get("/api/Type/file-type");
+      const fileTypes = typeResponse.data || [];
+      const fileType =
+        fileTypes.find((t) => t.name === "納品書") ||
+        fileTypes.find((t) => t.name === "その他") ||
+        fileTypes[0];
+      if (!fileType) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append("FileToUpload", file);
+      formData.append("EntityType", "GoodsReceipt");
+      formData.append("EntityId", goodsReceiptId);
+      formData.append("FileTypeId", fileType.id);
+      formData.append("FileName", file.name);
+      await axiosPrivate.post("/api/FileUpload/UploadEntity", formData);
+    } catch (error) {
+      // Non-fatal: the goods receipt itself was already registered successfully.
+    }
+  };
+
   const handleConfirm = async () => {
     if (!validateForm()) {
       setSnackbar({
@@ -199,6 +229,7 @@ const GoodsReceiptIntakeUpload = () => {
 
     try {
       const response = await goodsReceiptService.create(axiosPrivate, payload);
+      await attachSourceFile(response.data.goodsReceiptId);
       const warnings = response.data.overDeliveryWarnings || [];
       setSnackbar({
         isOpen: true,

@@ -19,9 +19,15 @@ import * as Icons from "@mui/icons-material";
 import ContentDialog from "../until/ContentDialog.js";
 import FormSnackbar from "./FormSnackbar.js";
 
-const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
+// entityType defaults to "Case" to keep every existing caller (which only ever passes `caseId`)
+// working unchanged. Pass entityType="PurchaseOrder"/"GoodsReceipt" + entityId to attach files to
+// those records instead — routed to the entity-agnostic /api/FileUpload/*Entity endpoints, which
+// store the file under EntityKeyword rather than CaseKeyword (see backend for why they're separate).
+const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId, entityType = "Case", entityId, fixedFileTypeId }) => {
   const axiosPrivate = useAxiosPrivate();
   const controller = new AbortController();
+  const isCase = entityType === "Case";
+  const currentEntityId = isCase ? caseId : entityId;
   const [loading, setLoading] = useState(false);
   const [loadingFile, setLoadingFile] = useState(false);
   const [listItem, setListItem] = useState([]);
@@ -55,13 +61,16 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
     setShowAlert(false);
     setSelectedFiles([]);
     setShowBulkDeleteAlert(false);
-    await getFilesOfCase();
+    setDataUpload({ fileTypeId: fixedFileTypeId || null, fileName: "" });
+    await getFilesOfEntity();
   }, [open]);
 
-  const getFilesOfCase = async () => {
+  const getFilesOfEntity = async () => {
     setLoadingFile(true);
     setSelectedFiles([]);
-    let getFilesUploadURL = `/api/Case/file/getall?caseId=${caseId}`;
+    const getFilesUploadURL = isCase
+      ? `/api/Case/file/getall?caseId=${currentEntityId}`
+      : `/api/FileUpload/Entity?entityType=${entityType}&entityId=${currentEntityId}`;
     await axiosPrivate
       .get(getFilesUploadURL, {
         signal: controller.signal,
@@ -102,23 +111,44 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
   const handleBulkDelete = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const payload = listItem
-      .filter((f) => selectedFiles.includes(f.keywordId))
-      .map((f) => ({ keywordId: f.keywordId, caseId: caseId, fileName: f.fileName }));
-    await axiosPrivate
-      .put("/api/FileUpload/BulkDelete", payload)
-      .then(async () => {
-        await getFilesOfCase();
+    const targets = listItem.filter((f) => selectedFiles.includes(f.keywordId));
+    if (isCase) {
+      const payload = targets.map((f) => ({ keywordId: f.keywordId, caseId: currentEntityId, fileName: f.fileName }));
+      await axiosPrivate
+        .put("/api/FileUpload/BulkDelete", payload)
+        .then(async () => {
+          await getFilesOfEntity();
+          setShowBulkDeleteAlert(false);
+          setSnackbar({ isOpen: true, status: "success", message: "選択した書類を削除しました。" });
+        })
+        .catch(() => {
+          setSnackbar({
+            isOpen: true,
+            status: "error",
+            message: "エラーが発生しました。再試行するか、サポートにお問い合わせください。",
+          });
+        });
+    } else {
+      try {
+        for (const f of targets) {
+          await axiosPrivate.put("/api/FileUpload/DeleteEntity", {
+            entityType,
+            entityId: currentEntityId,
+            keywordId: f.keywordId,
+            fileName: f.fileName,
+          });
+        }
+        await getFilesOfEntity();
         setShowBulkDeleteAlert(false);
         setSnackbar({ isOpen: true, status: "success", message: "選択した書類を削除しました。" });
-      })
-      .catch(() => {
+      } catch (error) {
         setSnackbar({
           isOpen: true,
           status: "error",
           message: "エラーが発生しました。再試行するか、サポートにお問い合わせください。",
         });
-      });
+      }
+    }
     setLoading(false);
   };
 
@@ -129,14 +159,19 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
 
     const formData = new FormData();
     formData.append("FileToUpload", dataUpload.fileToUpload);
-    formData.append("CaseId", caseId);
     formData.append("FileTypeId", dataUpload.fileTypeId);
     formData.append("FileName", dataUpload.fileName);
+    if (isCase) {
+      formData.append("CaseId", currentEntityId);
+    } else {
+      formData.append("EntityType", entityType);
+      formData.append("EntityId", currentEntityId);
+    }
 
     await axiosPrivate
-      .post("/api/FileUpload/Upload", formData)
+      .post(isCase ? "/api/FileUpload/Upload" : "/api/FileUpload/UploadEntity", formData)
       .then(async (response) => {
-        await getFilesOfCase();
+        await getFilesOfEntity();
         setSnackbar({
           isOpen: true,
           status: "success",
@@ -179,11 +214,10 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
   };
   const viewOrDownloadFile = async (item, type) => {
     setLoading(true);
-    let getFileUrl = `/api/FileUpload/Download`;
-    let payload = {
-      fileName: item.fileName,
-      caseId: caseId,
-    };
+    const getFileUrl = isCase ? "/api/FileUpload/Download" : "/api/FileUpload/DownloadEntity";
+    const payload = isCase
+      ? { fileName: item.fileName, caseId: currentEntityId }
+      : { fileName: item.fileName, entityType, entityId: currentEntityId };
     await axiosPrivate
       .post(getFileUrl, payload)
       .then(async (response) => {
@@ -219,14 +253,15 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
   const handleClickDelete = async (e) => {
     setLoading(true);
     e.preventDefault();
-    let deleteFileUrl = `/api/FileUpload/Delete`;
-    let payload = fileDelete;
-    payload.caseId = caseId;
+    const deleteFileUrl = isCase ? "/api/FileUpload/Delete" : "/api/FileUpload/DeleteEntity";
+    const payload = isCase
+      ? { ...fileDelete, caseId: currentEntityId }
+      : { ...fileDelete, entityType, entityId: currentEntityId };
     await axiosPrivate
       .put(deleteFileUrl, payload)
       .then(async (response) => {
         setUrlPreviewImg({ ...urlPreviewImg, blobUrl: "", fileName: "" });
-        await getFilesOfCase();
+        await getFilesOfEntity();
         setShowAlert(false);
         setSnackbar({
           isOpen: true,
@@ -277,13 +312,14 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
           <Grid item xs={4}>
             <Upload
               optionFileType={optionFileType}
-              caseId={caseId}
-              valueTypeId={dataUpload.fileTypeId}
+              caseId={currentEntityId}
+              valueFileType={(optionFileType || []).find((t) => t.id === dataUpload.fileTypeId) || null}
               valueFileName={dataUpload.fileName}
               uploadFunction={uploadFunction}
               handleSelectedFileType={handleSelectedFileType}
               handleInputFileName={handleInputFileName}
               handleFileChange={handleFileChange}
+              disableFileType={!!fixedFileTypeId}
             />
           </Grid>
           <Grid item xs={8}>
@@ -415,7 +451,7 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
           item={fileDelete.fileName}
           handleFunction={handleClickDelete}
           typeDialog="書類削除の確認"
-          mainContent="書類を削除すると、案件から関連書類として参照できなくなります。本当に削除しますか"
+          mainContent="書類を削除すると、参照できなくなります。本当に削除しますか"
           cancelBtnDialog="いいえ"
           confirmBtnDialog="はい"
         ></ConfirmDialog>
@@ -425,7 +461,7 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId }) => {
           item={`${selectedFiles.length}件の書類`}
           handleFunction={handleBulkDelete}
           typeDialog="書類一括削除の確認"
-          mainContent="選択した書類を削除すると、案件から関連書類として参照できなくなります。本当に削除しますか"
+          mainContent="選択した書類を削除すると、参照できなくなります。本当に削除しますか"
           cancelBtnDialog="いいえ"
           confirmBtnDialog="はい"
         ></ConfirmDialog>

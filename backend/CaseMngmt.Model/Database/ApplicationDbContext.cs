@@ -270,6 +270,15 @@ namespace CaseMngmt.Models.Database
                 .HasForeignKey(e => e.KeywordId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // BaseModel.Name has no `?`, so with <Nullable>enable</Nullable> EF's NRT convention treats it
+            // as required — but the AddEntityKeywordTable migration created it nullable (matching CaseKeyword's
+            // own migration) and nothing that creates an EntityKeyword row ever sets Name. Without this override,
+            // any query that materializes a full EntityKeyword entity (not a projection) throws SqlNullValueException
+            // the first time it reads a row back. Override to match the actual (intentionally nullable) column.
+            modelBuilder.Entity<EntityKeyword>()
+                .Property(e => e.Name)
+                .IsRequired(false);
+
             base.OnModelCreating(modelBuilder);
         }
 

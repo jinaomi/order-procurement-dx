@@ -116,43 +116,11 @@ namespace CaseMngmt.Server
                     },
                     new Models.Types.Type
                     {
-                        Name = "注文書",Value = "string",IsFileType = true,
+                        Name = "発注書",Value = "string",IsFileType = true,
                     },
                     new Models.Types.Type
                     {
                         Name = "その他",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "出荷予定一覧",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "依頼書",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "案内図",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "現場写真",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "現場計測データ",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "現場図面",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "現場地図",Value = "string",IsFileType = true,
-                    },
-                    new Models.Types.Type
-                    {
-                        Name = "速報メール",Value = "string",IsFileType = true,
                     },
                     new Models.Types.Type
                     {

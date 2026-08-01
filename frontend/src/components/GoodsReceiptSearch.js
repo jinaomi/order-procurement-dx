@@ -170,8 +170,8 @@ const GoodsReceiptSearch = () => {
   return (
     <section>
       <Grid container spacing={5}>
-        <Grid item xs={12} sm={5} md={3}>
-          <div className="section-item">
+        <Grid item xs={12} sm={6} md={4}>
+          <div className="section-item" style={{ minWidth: 220 }}>
             <label className="section-label">仕入先</label>
             <FormSelection
               value={suppliers.find((s) => s.id === supplierId) || null}
