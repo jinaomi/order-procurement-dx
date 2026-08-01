@@ -88,6 +88,8 @@ namespace CaseMngmt.Server.Controllers
                     // builder always has a template to attach fields to.
                     await _templateService.EnsureModuleTemplateAsync(result.Value, "Product");
                     await _templateService.EnsureModuleTemplateAsync(result.Value, "Order");
+                    await _templateService.EnsureModuleTemplateAsync(result.Value, "Supplier");
+                    await _templateService.EnsureModuleTemplateAsync(result.Value, "PurchaseOrder");
                 }
                 return result != null ? Ok(result) : BadRequest();
             }

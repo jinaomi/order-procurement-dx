@@ -45,6 +45,15 @@ using CaseMngmt.Repository.AiMatching;
 using CaseMngmt.Service.Chat;
 using CaseMngmt.Repository.EntityKeywords;
 using CaseMngmt.Service.EntityKeywords;
+using CaseMngmt.Repository.Suppliers;
+using CaseMngmt.Service.Suppliers;
+using CaseMngmt.Repository.PurchaseOrders;
+using CaseMngmt.Service.PurchaseOrders;
+using CaseMngmt.Repository.GoodsReceipts;
+using CaseMngmt.Service.GoodsReceipts;
+using CaseMngmt.Service.ReorderSuggestions;
+using CaseMngmt.Repository.PurchaseInvoices;
+using CaseMngmt.Service.PurchaseInvoices;
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -156,6 +165,22 @@ builder.Services.AddTransient<IChatAssistantService, ChatAssistantService>();
 
 builder.Services.AddTransient<IEntityKeywordService, EntityKeywordService>();
 builder.Services.AddTransient<IEntityKeywordRepository, EntityKeywordRepository>();
+
+builder.Services.AddTransient<ISupplierService, SupplierService>();
+builder.Services.AddTransient<ISupplierRepository, SupplierRepository>();
+
+builder.Services.AddTransient<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddTransient<IPurchaseOrderRepository, PurchaseOrderRepository>();
+
+builder.Services.AddTransient<IGoodsReceiptService, GoodsReceiptService>();
+builder.Services.AddTransient<IGoodsReceiptRepository, GoodsReceiptRepository>();
+
+builder.Services.AddTransient<IAiReorderSuggestionService, AiReorderSuggestionService>();
+
+builder.Services.AddTransient<IPurchaseInvoiceService, PurchaseInvoiceService>();
+builder.Services.AddTransient<IPurchaseInvoiceRepository, PurchaseInvoiceRepository>();
+
+builder.Services.AddTransient<IAiProcurementExtractionService, AiProcurementExtractionService>();
 
 #endregion
 

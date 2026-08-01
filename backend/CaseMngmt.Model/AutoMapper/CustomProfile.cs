@@ -4,6 +4,7 @@ using CaseMngmt.Models.Customers;
 using CaseMngmt.Models.FileTypes;
 using CaseMngmt.Models.Keywords;
 using CaseMngmt.Models.Products;
+using CaseMngmt.Models.Suppliers;
 using CaseMngmt.Models.Types;
 
 namespace CaseMngmt.Models.AutoMapper
@@ -44,6 +45,12 @@ namespace CaseMngmt.Models.AutoMapper
             CreateMap<PagedResult<Product>, PagedResult<ProductViewModel>>();
             CreateMap<PagedResult<ProductViewModel>, PagedResult<Product>>();
             CreateMap<ProductRequest, Product>().ForMember(x => x.Id, opt => opt.Ignore());
+
+            CreateMap<Supplier, SupplierViewModel>();
+            CreateMap<SupplierViewModel, Supplier>();
+            CreateMap<PagedResult<Supplier>, PagedResult<SupplierViewModel>>();
+            CreateMap<PagedResult<SupplierViewModel>, PagedResult<Supplier>>();
+            CreateMap<SupplierRequest, Supplier>().ForMember(x => x.Id, opt => opt.Ignore());
         }
     }
 }

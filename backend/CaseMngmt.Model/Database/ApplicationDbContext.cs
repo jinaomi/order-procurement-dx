@@ -7,12 +7,16 @@ using CaseMngmt.Models.Companies;
 using CaseMngmt.Models.CompanyTemplates;
 using CaseMngmt.Models.Customers;
 using CaseMngmt.Models.EntityKeywords;
+using CaseMngmt.Models.GoodsReceipts;
 using CaseMngmt.Models.Invoices;
+using CaseMngmt.Models.PurchaseInvoices;
 using CaseMngmt.Models.KeywordRoles;
 using CaseMngmt.Models.Keywords;
 using CaseMngmt.Models.Orders;
 using CaseMngmt.Models.Products;
+using CaseMngmt.Models.PurchaseOrders;
 using CaseMngmt.Models.RoleFileTypes;
+using CaseMngmt.Models.Suppliers;
 using CaseMngmt.Models.Templates;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +80,121 @@ namespace CaseMngmt.Models.Database
                 .WithMany()
                 .HasForeignKey(e => e.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Supplier>()
+                .HasOne<Company>()
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseOrder>()
+                .HasOne<Company>()
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseOrder>()
+                .HasOne(e => e.Supplier)
+                .WithMany()
+                .HasForeignKey(e => e.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .HasOne(e => e.PurchaseOrder)
+                .WithMany(e => e.PurchaseOrderItems)
+                .HasForeignKey(e => e.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseOrder>()
+                .Property(e => e.SubTotalAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrder>()
+                .Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrder>()
+                .Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .Property(e => e.Quantity).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .Property(e => e.LineAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseOrderItem>()
+                .Property(e => e.ReceivedQuantity).HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<GoodsReceipt>()
+                .HasOne<Company>()
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoodsReceipt>()
+                .HasOne(e => e.PurchaseOrder)
+                .WithMany()
+                .HasForeignKey(e => e.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoodsReceipt>()
+                .HasOne(e => e.Supplier)
+                .WithMany()
+                .HasForeignKey(e => e.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoodsReceiptItem>()
+                .HasOne(e => e.GoodsReceipt)
+                .WithMany(e => e.GoodsReceiptItems)
+                .HasForeignKey(e => e.GoodsReceiptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<GoodsReceiptItem>()
+                .HasOne(e => e.PurchaseOrderItem)
+                .WithMany()
+                .HasForeignKey(e => e.PurchaseOrderItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoodsReceiptItem>()
+                .HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GoodsReceiptItem>()
+                .Property(e => e.ReceivedQuantity).HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne<Company>()
+                .WithMany()
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(e => e.Supplier)
+                .WithMany()
+                .HasForeignKey(e => e.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(e => e.PurchaseOrder)
+                .WithMany()
+                .HasForeignKey(e => e.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(e => e.GoodsReceipt)
+                .WithMany()
+                .HasForeignKey(e => e.GoodsReceiptId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .Property(e => e.SubTotalAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseInvoice>()
+                .Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<PurchaseInvoice>()
+                .Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<OrderItem>()
                 .HasOne(e => e.Order)
@@ -170,5 +289,11 @@ namespace CaseMngmt.Models.Database
         public DbSet<Invoice> Invoice { get; set; }
         public DbSet<OrderRiskLineResult> OrderRiskLineResult { get; set; }
         public DbSet<EntityKeyword> EntityKeyword { get; set; }
+        public DbSet<Supplier> Supplier { get; set; }
+        public DbSet<PurchaseOrder> PurchaseOrder { get; set; }
+        public DbSet<PurchaseOrderItem> PurchaseOrderItem { get; set; }
+        public DbSet<GoodsReceipt> GoodsReceipt { get; set; }
+        public DbSet<GoodsReceiptItem> GoodsReceiptItem { get; set; }
+        public DbSet<PurchaseInvoice> PurchaseInvoice { get; set; }
     }
 }

@@ -11,9 +11,11 @@ Tài liệu bổ sung:
 
 ---
 
-## Current State (2026-07-31)
+## Current State (2026-08-01)
 
-**QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`. Repo này được tạo ra để làm điểm khởi đầu xây thêm module **仕入れ** (mua hàng/nhà cung cấp) — module này **có plan chi tiết đã chốt (Supplier/PurchaseOrder/GoodsReceipt/PurchaseInvoice, xem `docs/devlog/2026-07-31.md` mục "Vấn đề còn tồn đọng") nhưng CHƯA code**, vì phiên làm việc gần nhất đổi hướng sang xây nền tảng dynamic-field trước (xem đoạn dưới).
+**QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`.
+
+**Module 仕入れ (procurement/supplier) — ĐÃ CODE XONG cả 6 phase (2026-08-01)**: Supplier → PurchaseOrder → GoodsReceipt → PurchaseInvoice, cộng thêm 2 tính năng AI (発注提案 đề xuất đặt hàng chủ động, và AI đọc 見積書/納品書). Toàn bộ dùng engine `EntityKeyword`/`ModuleType` cho custom field ngay từ đầu. Xem mục "Module 仕入れ" bên dưới để biết kiến trúc chi tiết, và `docs/devlog/2026-08-01.md` để biết đầy đủ quyết định + kết quả test. **Chưa test qua UI thật** (chỉ test qua API/curl + build check) — xem Next Steps.
 
 **Dynamic Field / Custom Fields cho Product & Order (mới, 2026-07-31)**: đã tổng quát hoá cơ chế EAV vốn chỉ phục vụ 案件管理 (`Template`/`Keyword`/`Type`/`CaseKeyword`) để dùng chung được cho `Product`/`Order` — admin giờ tự thêm/bớt "field bổ sung" (không phải field lõi có logic nghiệp vụ) qua Form Builder (`KeywordBuilder.jsx`) có sẵn, không cần sửa code. Chi tiết kiến trúc:
 - `Template.ModuleType` (`"Case"`/`"Product"`/`"Order"`, default `"Case"` — không đổi hành vi Case cũ) phân biệt template thuộc module nào; 1 company giờ có nhiều `CompanyTemplate` (1 per module) thay vì giả định 1-template-duy-nhất như trước.
@@ -49,7 +51,27 @@ Ngoài hệ thống Case/Template gốc mô tả bên dưới, project đã đư
 
 Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/AnthropicClient.cs`), model `claude-opus-4-8`, API key qua `dotnet user-secrets` (KHÔNG trong appsettings.json).
 
-**Build health (2026-07-31)**: `dotnet build` (backend) và `npm run build`/dev server (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`). Đã verify thêm bằng cách chạy backend thật với LocalDB (`dotnet run`) — 2 migration mới (`AddTemplateModuleType`, `AddEntityKeywordTable`) áp dụng sạch, seed data không lỗi. Lưu ý: `dotnet build` sẽ báo lỗi file-lock (MSB3027) trong lúc backend đang chạy nền (`dotnet run`) — không phải lỗi code, chỉ cần dừng process đang chạy trước khi build lại.
+---
+
+### Module 仕入れ (procurement/supplier) — mới, 2026-08-01
+
+Đối xứng với 受注業務DX ở trên nhưng cho chiều mua hàng, dành cho khách hàng mục tiêu là 卸売・流通業 (bán buôn/lưu thông) chứ không phải 製造業 (sản xuất) — quyết định chiến lược từ góp ý chuyên gia tư vấn (bác Sugimoto), xem `docs/devlog/2026-08-01.md` đầu file để biết bối cảnh đầy đủ. Vòng lặp cốt lõi đơn giản, KHÔNG mô hình hoá chuỗi công đoạn gia công như sản xuất:
+
+`仕入先管理 → 発注 → 入荷（tồn kho cộng thật) → 仕入請求書・三者照合`, cộng thêm `発注提案`（AI chủ động）và AI đọc chứng từ (見積書/納品書).
+
+- **Supplier** (`CaseMngmt.Model/Suppliers/`): thông tin công ty + địa chỉ (mirror `Customer`) + điều khoản thanh toán kiểu Nhật cố định trên entity: `ClosingDay`(締め日, int, 99=月末), `PaymentCycleMonths`(支払サイト tháng), `PaymentDay`(支払日, cùng convention 99=月末). Dùng dynamic-field (`EntityType="Supplier"`) cho field bổ sung.
+- **PurchaseOrder/PurchaseOrderItem** (`CaseMngmt.Model/PurchaseOrders/`): mirror `Order`/`OrderItem`, đánh số `PO-{year}-{seq:D5}`. Status `Draft→Confirmed→(PartiallyReceived↔nhận thêm)→Received`, `Cancelled` — **không có `RiskFlagged`** (không có nguồn dữ liệu đánh giá độ tin cậy supplier, khác với đánh giá tồn kho của chính mình cho Order). `PurchaseOrderItem.ReceivedQuantity` là cột cố định (cộng dồn qua các lần nhận hàng), không đưa vào EAV vì có logic nghiệp vụ thật.
+- **GoodsReceipt/GoodsReceiptItem** (`CaseMngmt.Model/GoodsReceipts/`): 1 PurchaseOrder : nhiều GoodsReceipt (hỗ trợ giao hàng nhiều đợt). `GoodsReceiptService.CreateAsync` **cộng thật** `Product.StockQuantity` — đối xứng với `InvoiceService` trừ kho, nhưng atomic hơn: mutate trực tiếp entity đã tracked (PurchaseOrder/PurchaseOrderItem/Product cùng load qua 1 DbContext) rồi để 1 lệnh `AddAsync` cuối cùng persist tất cả trong 1 SaveChanges. Cảnh báo (không chặn) nếu nhận thừa so với đặt.
+- **PurchaseInvoice** (`CaseMngmt.Model/PurchaseInvoices/`): header-only (không có line item, giống `Invoice`), snapshot tiền từ `PurchaseOrder`. `DueDate` tính 1 lần lúc tạo từ điều khoản Supplier (`IssueDate + PaymentCycleMonths + PaymentDay`, KHÔNG mô hình hoá cutoff-cycle của `ClosingDay` — đơn giản hoá đã ghi rõ trong plan). `PaidDate` tách riêng `Status` để phục vụ đối chiếu.
+- **三者照合 (đối chiếu 3 chiều)**: `PurchaseOrderService.GetReconciliationAsync` (`GET /api/PurchaseOrder/{id}/reconciliation`) — checklist 4 bước 発注済み/入荷済み/請求受領済み/支払済み + cờ `HasAmountMismatch` (chỉ báo khi đã nhận đủ hàng, tránh báo sai lúc supplier chưa bill hết). Hiển thị dạng Chip nhúng trong `PurchaseOrderDetail.js`.
+- **発注提案 (AI đề xuất đặt hàng chủ động)**: `AiReorderSuggestionService` (`CaseMngmt.Service/ReorderSuggestions/`) — mirror pattern `AiMatchingService`: **C# tính xác định 100%** (tốc độ tiêu thụ từ `OrderItem` lịch sử 90 ngày, hệ số mùa vụ so cùng tháng năm trước có clamp 0.3~3.0, lead time supplier từ lịch sử PurchaseOrder→GoodsReceipt, số lượng/thời điểm đề xuất), Claude chỉ sinh phần giải thích tiếng Nhật cho sản phẩm nhóm `UrgentReorder`/`PlanAhead`. Không entity/migration mới, kết quả tính live mỗi lần gọi `GET /api/ReorderSuggestion` (không persist, giống `DashboardCommentService`). Frontend `ReorderSuggestions.js` có nút "発注書を作成" pre-fill `PurchaseOrderDetail.js` qua prop `initialData` mới (người dùng vẫn phải xác nhận thủ công mới lưu — nguyên tắc "AI chỉ đề xuất" áp dụng nhất quán).
+- **AI đọc 見積書/納品書**: `AiProcurementExtractionService` (`CaseMngmt.Service/Ai/`, 1 service chung 2 method `ExtractPurchaseOrderAsync`/`ExtractGoodsReceiptAsync`) mirror `AiOrderExtractionService` — áp dụng sẵn 2 bài học từ phiên trước (giữ confidence thay vì bỏ trống khi chữ không rõ, backfill `UnitPrice` từ product master). `ExtractGoodsReceiptAsync` nhận thêm `purchaseOrderId?` để ưu tiên khớp `PurchaseOrderItemId` cụ thể trong PO đã chọn. Frontend `PurchaseOrderIntakeUpload.js`/`GoodsReceiptIntakeUpload.js` mirror 2 giai đoạn upload→review của `OrderIntakeUpload.js`.
+
+Menu Sidebar "仕入れ管理" (mở rộng được): 仕入先検索/仕入先登録/発注検索/発注登録/発注アップロード（AI）/入荷検索/入荷登録/入荷アップロード（AI）/発注提案/仕入請求書管理.
+
+**Đã test chức năng thật cho cả 6 phase** (curl qua API thật, gồm cả gọi Claude thật cho Phase 4 và Phase 6 — Phase 6 dùng ảnh 見積書/納品書 tổng hợp bằng PowerShell `System.Drawing` vì không có ảnh mẫu thật) — xem `docs/devlog/2026-08-01.md` để biết kết quả chi tiết từng phase. **CHƯA test qua UI thật** (Playwright/browser) — khác với dynamic-field engine đã test đầy đủ qua UI ở phiên 2026-07-31.
+
+**Build health (2026-08-01)**: `dotnet build` (backend) và `npm run build`/dev server (frontend) đều pass, không lỗi, trên repo này (`order-procurement-dx`). Đã verify thêm bằng cách chạy backend thật với LocalDB (`dotnet run`) sau MỖI phase của module 仕入れ — 4 migration mới (`AddSupplierModule`, `AddPurchaseOrderModule`, `AddGoodsReceiptModule`, `AddPurchaseInvoiceModule`, cộng 2 migration cũ `AddTemplateModuleType`/`AddEntityKeywordTable` từ 2026-07-31) đều áp dụng sạch, không lỗi. Lưu ý: `dotnet build` sẽ báo lỗi file-lock (MSB3027) trong lúc backend đang chạy nền (`dotnet run`) — không phải lỗi code, chỉ cần dừng process đang chạy trước khi build lại (`Stop-Process -Name CaseMngmt.Server -Force`).
 
 **Demo/chia sẻ ra ngoài**: hiện **không có demo nào đang chạy sống** (đã dừng bản demo cũ chạy từ `case-management`). Khi cần dựng lại demo: `npm run build` (frontend) → mirror vào `wwwroot` (`robocopy ... /MIR`) → chạy backend với `--no-launch-profile` (né SpaProxy cũ trỏ thư mục không tồn tại) → `ngrok http 5178`. URL ngrok đổi mỗi lần restart trừ khi có static domain đã đặt riêng — xem devlog gần nhất để biết URL hiện tại nếu có.
 
@@ -57,12 +79,13 @@ Toàn bộ AI feature dùng chung `AnthropicClient` (`CaseMngmt.Service/Ai/Anthr
 
 ## Next Steps
 
-1. **Thiết kế + code module 仕入れ (procurement/supplier)** — plan chi tiết đã chốt (Supplier với 締め日/支払サイト kiểu Nhật, PurchaseOrder→GoodsReceipt cộng ngược `StockQuantity` đối xứng với Invoice trừ kho, AI đọc 見積書/納品書 theo pattern `OrderIntakeUpload`) nhưng CHƯA thực thi — cần dựng lại plan (xem `docs/devlog/2026-07-31.md`) và code, dùng engine `EntityKeyword`/`ModuleType` mới ngay từ đầu thay vì schema cố định.
-2. Search/filter theo giá trị custom field trên `ProductSearch.js`/`OrderSearch.js` (cố ý để ngoài phạm vi phiên vừa rồi).
-3. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
-4. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
-5. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
-6. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
+1. **Test module 仕入れ qua UI thật** (Playwright headless + Edge, theo cách đã làm ở phiên dynamic-field 2026-07-31) — cả 6 phase mới chỉ test qua API/curl, chưa qua browser thật. Ưu tiên Phase 6 (upload ảnh qua form thật) và Phase 4 (luồng "発注書を作成" pre-fill trên UI).
+2. Dọn dữ liệu test (Supplier/Product/Customer/PurchaseOrder/GoodsReceipt/PurchaseInvoice tên bắt đầu "Test") tạo ra trong lúc verify module 仕入れ khỏi LocalDB nếu muốn DB sạch trước khi demo.
+3. Search/filter theo giá trị custom field trên `ProductSearch.js`/`OrderSearch.js`/`SupplierSearch.js` (cố ý để ngoài phạm vi các phiên vừa rồi).
+4. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
+5. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
+6. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
+7. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber`/`PurchaseOrderNumber`/`GoodsReceiptNumber`/`PurchaseInvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
 
 Các next-step khác liên quan riêng tới `case-management` gốc (rotate AWS key hardcode trong repo đó, thêm `*.log` vào `.gitignore` gốc...) — không còn thuộc phạm vi làm việc, xem `docs/devlog/2026-07-31.md` nếu cần biết chi tiết.
 

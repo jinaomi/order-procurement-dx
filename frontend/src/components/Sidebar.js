@@ -13,6 +13,8 @@ import PeopleIcon from "@mui/icons-material/People";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import DocumentScannerIcon from "@mui/icons-material/DocumentScanner";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -35,6 +37,16 @@ import OrderSearch from "./OrderSearch";
 import OrderDetail from "./OrderDetail";
 import OrderIntakeUpload from "./OrderIntakeUpload";
 import ProductSearch from "./ProductSearch";
+import SupplierSearch from "./SupplierSearch";
+import SupplierDetail from "./SupplierDetail";
+import PurchaseOrderSearch from "./PurchaseOrderSearch";
+import PurchaseOrderDetail from "./PurchaseOrderDetail";
+import GoodsReceiptSearch from "./GoodsReceiptSearch";
+import GoodsReceiptDetail from "./GoodsReceiptDetail";
+import ReorderSuggestions from "./ReorderSuggestions";
+import PurchaseInvoiceSearch from "./PurchaseInvoiceSearch";
+import PurchaseOrderIntakeUpload from "./PurchaseOrderIntakeUpload";
+import GoodsReceiptIntakeUpload from "./GoodsReceiptIntakeUpload";
 import InvoiceSearch from "./InvoiceSearch";
 import SalesDashboard from "./SalesDashboard";
 import ChatAssistant from "./ChatAssistant";
@@ -56,6 +68,7 @@ const Sidebar = () => {
   const [customerOpen, setCustomerOpen] = React.useState(false);
   const [caseOpen, setCaseOpen] = React.useState(false);
   const [orderOpen, setOrderOpen] = React.useState(false);
+  const [supplierOpen, setSupplierOpen] = React.useState(false);
   const [header, setHeader] = React.useState();
   const [caseId, setCaseDetail] = React.useState("");
   const [customerId, setCustomerDetail] = React.useState("");
@@ -140,6 +153,30 @@ const Sidebar = () => {
       case "Product Management":
         setHeader("商品・在庫管理");
         break;
+      case "Supplier":
+        setSupplierOpen(!supplierOpen);
+        break;
+      case "Search Supplier":
+        setHeader("仕入先検索");
+        break;
+      case "Search Purchase Order":
+        setHeader("発注検索");
+        break;
+      case "Upload Purchase Order":
+        setHeader("発注アップロード（AI）");
+        break;
+      case "Search Goods Receipt":
+        setHeader("入荷検索");
+        break;
+      case "Upload Goods Receipt":
+        setHeader("入荷アップロード（AI）");
+        break;
+      case "Reorder Suggestions":
+        setHeader("発注提案");
+        break;
+      case "Purchase Invoice Management":
+        setHeader("仕入請求書管理");
+        break;
       case "Invoice Management":
         setHeader("請求書管理");
         break;
@@ -177,7 +214,17 @@ const Sidebar = () => {
       color: "#fff",
     },
   };
-  const hoverChildButton = { ...hoverButton, pl: 4 };
+  const hoverChildButton = {
+    ...hoverButton,
+    pl: 4,
+    "& .MuiListItemText-primary": {
+      fontWeight: 500,
+      fontSize: "0.92rem",
+    },
+    "& .MuiSvgIcon-root": {
+      fontSize: "1.15rem",
+    },
+  };
 
   const logOut = () => {
     localStorage.removeItem("AuthToken");
@@ -207,7 +254,15 @@ const Sidebar = () => {
           {customerOpen ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
         <Collapse in={customerOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List
+            component="div"
+            disablePadding
+            sx={{
+              ml: "20px",
+              borderLeft: "3px solid #cfe0e6",
+              backgroundColor: "rgba(17, 89, 111, 0.03)",
+            }}
+          >
             <ListItemButton
               sx={hoverChildButton}
               onClick={() => handleClick("Search Customer")}
@@ -239,7 +294,15 @@ const Sidebar = () => {
           {caseOpen ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
         <Collapse in={caseOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List
+            component="div"
+            disablePadding
+            sx={{
+              ml: "20px",
+              borderLeft: "3px solid #cfe0e6",
+              backgroundColor: "rgba(17, 89, 111, 0.03)",
+            }}
+          >
             <ListItemButton
               sx={hoverChildButton}
               onClick={() => handleClick("Search Case")}
@@ -271,7 +334,15 @@ const Sidebar = () => {
           {orderOpen ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
         <Collapse in={orderOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List
+            component="div"
+            disablePadding
+            sx={{
+              ml: "20px",
+              borderLeft: "3px solid #cfe0e6",
+              backgroundColor: "rgba(17, 89, 111, 0.03)",
+            }}
+          >
             <ListItemButton
               sx={hoverChildButton}
               onClick={() => handleClick("Search Order")}
@@ -312,6 +383,90 @@ const Sidebar = () => {
           </ListItemIcon>
           <ListItemText primary="商品・在庫管理"></ListItemText>
         </ListItemButton>
+      </List>
+      <List>
+        <ListItemButton onClick={() => handleClick("Supplier")} sx={hoverButton}>
+          <ListItemIcon>
+            <LocalShippingIcon />
+          </ListItemIcon>
+          <ListItemText primary="仕入れ管理"></ListItemText>
+          {supplierOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+        <Collapse in={supplierOpen} timeout="auto" unmountOnExit>
+          <List
+            component="div"
+            disablePadding
+            sx={{
+              ml: "20px",
+              borderLeft: "3px solid #cfe0e6",
+              backgroundColor: "rgba(17, 89, 111, 0.03)",
+            }}
+          >
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Search Supplier")}
+            >
+              <ListItemIcon>
+                <SearchIcon />
+              </ListItemIcon>
+              <ListItemText primary="仕入先検索/登録" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Search Purchase Order")}
+            >
+              <ListItemIcon>
+                <SearchIcon />
+              </ListItemIcon>
+              <ListItemText primary="発注検索/登録" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Upload Purchase Order")}
+            >
+              <ListItemIcon>
+                <DocumentScannerIcon />
+              </ListItemIcon>
+              <ListItemText primary="発注アップロード（AI）" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Search Goods Receipt")}
+            >
+              <ListItemIcon>
+                <SearchIcon />
+              </ListItemIcon>
+              <ListItemText primary="入荷検索/登録" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Upload Goods Receipt")}
+            >
+              <ListItemIcon>
+                <DocumentScannerIcon />
+              </ListItemIcon>
+              <ListItemText primary="入荷アップロード（AI）" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Reorder Suggestions")}
+            >
+              <ListItemIcon>
+                <TipsAndUpdatesIcon />
+              </ListItemIcon>
+              <ListItemText primary="発注提案" />
+            </ListItemButton>
+            <ListItemButton
+              sx={hoverChildButton}
+              onClick={() => handleClick("Purchase Invoice Management")}
+            >
+              <ListItemIcon>
+                <ReceiptLongIcon />
+              </ListItemIcon>
+              <ListItemText primary="仕入請求書管理" />
+            </ListItemButton>
+          </List>
+        </Collapse>
       </List>
       <List>
         <ListItemButton
@@ -506,6 +661,13 @@ const Sidebar = () => {
           {header === "受注登録" && <OrderDetail orderId={undefined} />}
           {header === "受注アップロード（AI読み取り）" && <OrderIntakeUpload />}
           {header === "商品・在庫管理" && <ProductSearch />}
+          {header === "仕入先検索" && <SupplierSearch />}
+          {header === "発注検索" && <PurchaseOrderSearch />}
+          {header === "発注アップロード（AI）" && <PurchaseOrderIntakeUpload />}
+          {header === "入荷検索" && <GoodsReceiptSearch />}
+          {header === "入荷アップロード（AI）" && <GoodsReceiptIntakeUpload />}
+          {header === "発注提案" && <ReorderSuggestions />}
+          {header === "仕入請求書管理" && <PurchaseInvoiceSearch />}
           {header === "請求書管理" && <InvoiceSearch />}
           {header === "経営ダッシュボード" && <SalesDashboard />}
           {header === "AIチャット" && <ChatAssistant />}
