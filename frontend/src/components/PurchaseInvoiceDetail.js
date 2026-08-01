@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
-import { Grid, Chip } from "@mui/material";
+import { Grid, Chip, Alert } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
+import DialogHandle from "./until/DialogHandle";
+import AttachedFilesList from "./until/AttachedFilesList";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import purchaseInvoiceService from "../services/purchaseInvoiceService";
 import purchaseOrderService from "../services/purchaseOrderService";
@@ -31,6 +33,32 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
 
   // View mode
   const [viewData, setViewData] = useState(null);
+
+  // Newly created invoice, still shown on the create-mode screen so a source document
+  // (supplier's original invoice) can be attached right after registration.
+  const [createdId, setCreatedId] = useState(null);
+
+  const [showAttachDialog, setShowAttachDialog] = useState(false);
+  const [optionFileType, setOptionFileType] = useState([]);
+  const [attachFileTypeId, setAttachFileTypeId] = useState(null);
+  const [attachRefreshToken, setAttachRefreshToken] = useState(0);
+
+  const handleAttach = async () => {
+    try {
+      const response = await axiosPrivate.get("/api/Type/file-type");
+      const options = (response.data || []).map((item) => ({ id: item.id, label: item.name }));
+      setOptionFileType(options);
+      setAttachFileTypeId((options.find((t) => t.label === "請求書") || {}).id || null);
+    } catch (error) {
+      setOptionFileType([]);
+    }
+    setShowAttachDialog(true);
+  };
+
+  const closeAttachDialog = () => {
+    setShowAttachDialog(false);
+    setAttachRefreshToken((v) => v + 1);
+  };
 
   useEffect(async () => {
     if (purchaseInvoiceId) {
@@ -102,7 +130,8 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
     };
 
     try {
-      await purchaseInvoiceService.create(axiosPrivate, payload);
+      const response = await purchaseInvoiceService.create(axiosPrivate, payload);
+      setCreatedId(response.data);
       setSnackbar({
         isOpen: true,
         status: "success",
@@ -171,13 +200,32 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
                 <b>備考：</b> {viewData.note}
               </Grid>
             )}
-            {viewData.status !== "Paid" && (
-              <Grid item xs={12}>
-                <FormButton itemName="支払い確認" onClick={handleMarkPaid} />
-              </Grid>
-            )}
+            <Grid item xs={12}>
+              <div className="handle-button">
+                {viewData.status !== "Paid" && (
+                  <FormButton itemName="支払い確認" onClick={handleMarkPaid} />
+                )}
+                <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />
+              </div>
+            </Grid>
+            <Grid item xs={12}>
+              <AttachedFilesList
+                entityType="PurchaseInvoice"
+                entityId={purchaseInvoiceId}
+                refreshToken={attachRefreshToken}
+              />
+            </Grid>
           </Grid>
         )}
+        <DialogHandle
+          open={showAttachDialog}
+          closeDialog={closeAttachDialog}
+          title="関連書類の添付"
+          optionFileType={optionFileType}
+          entityType="PurchaseInvoice"
+          entityId={purchaseInvoiceId}
+          fixedFileTypeId={attachFileTypeId}
+        />
         <LoadingSpinner loading={loading}></LoadingSpinner>
         <FormSnackbar item={snackbar} setItem={setSnackbar} />
       </section>
@@ -188,6 +236,13 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
     <section className="purchase-invoice">
       <form onSubmit={onSubmit}>
         <Grid container columnSpacing={5} rowSpacing={3}>
+          {createdId && (
+            <Grid item xs={12}>
+              <Alert severity="success" action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />}>
+                仕入請求書を登録しました。請求書の写真などを添付できます。
+              </Alert>
+            </Grid>
+          )}
           <Grid item xs={6}>
             <div className="section-item">
               <label className="section-label">
@@ -253,8 +308,26 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
               <FormButton itemName="登録" type="submit" />
             </div>
           </Grid>
+          {createdId && (
+            <Grid item xs={12}>
+              <AttachedFilesList
+                entityType="PurchaseInvoice"
+                entityId={createdId}
+                refreshToken={attachRefreshToken}
+              />
+            </Grid>
+          )}
         </Grid>
       </form>
+      <DialogHandle
+        open={showAttachDialog}
+        closeDialog={closeAttachDialog}
+        title="関連書類の添付"
+        optionFileType={optionFileType}
+        entityType="PurchaseInvoice"
+        entityId={createdId}
+        fixedFileTypeId={attachFileTypeId}
+      />
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />
     </section>

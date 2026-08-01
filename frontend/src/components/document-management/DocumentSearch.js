@@ -27,12 +27,14 @@ import * as Icons from "@mui/icons-material";
 import CaseDetail from "../CaseDetail.js";
 import PurchaseOrderDetail from "../PurchaseOrderDetail.js";
 import GoodsReceiptDetail from "../GoodsReceiptDetail.js";
+import PurchaseInvoiceDetail from "../PurchaseInvoiceDetail.js";
 import FormSnackbar from "../until/FormSnackbar.js";
 
 const entityTypeLabel = {
   Case: "案件",
   PurchaseOrder: "発注書",
   GoodsReceipt: "入荷",
+  PurchaseInvoice: "仕入請求書",
 };
 
 const DocumentSearch = () => {
@@ -675,6 +677,9 @@ const DocumentSearch = () => {
         )}
         {viewTarget.entityType === "GoodsReceipt" && (
           <GoodsReceiptDetail goodsReceiptId={viewTarget.entityId} />
+        )}
+        {viewTarget.entityType === "PurchaseInvoice" && (
+          <PurchaseInvoiceDetail purchaseInvoiceId={viewTarget.entityId} />
         )}
         {(!viewTarget.entityType || viewTarget.entityType === "Case") && (
           <CaseDetail caseId={viewTarget.entityId} createType={false} />

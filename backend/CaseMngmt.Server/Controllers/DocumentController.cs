@@ -20,7 +20,7 @@ namespace CaseMngmt.Server.Controllers
         // Not paginated at the DB level like Case documents (see Search) — acceptable for the low
         // per-company volume these two modules produce; only fetched on page 1 to avoid duplicating
         // the same rows on every page of the Case-paginated result.
-        private static readonly List<string> UnifiedSearchEntityTypes = new() { "PurchaseOrder", "GoodsReceipt" };
+        private static readonly List<string> UnifiedSearchEntityTypes = new() { "PurchaseOrder", "GoodsReceipt", "PurchaseInvoice" };
 
         private readonly ILogger<DocumentController> _logger;
         private readonly IFileUploadService _fileUploadService;
