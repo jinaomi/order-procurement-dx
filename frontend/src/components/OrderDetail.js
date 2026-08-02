@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
 import CustomFieldsSection from "./until/CustomFieldsSection";
+import DialogHandle from "./until/DialogHandle";
+import AttachedFilesList from "./until/AttachedFilesList";
 import { Grid, Table, TableBody, TableCell, TableHead, TableRow, IconButton } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -60,6 +62,10 @@ const OrderDetail = ({ orderId }) => {
   const [invoiceInfo, setInvoiceInfo] = useState(null);
   const [riskInfo, setRiskInfo] = useState(null);
   const [errors, setErrors] = useState({});
+  const [showAttachDialog, setShowAttachDialog] = useState(false);
+  const [optionFileType, setOptionFileType] = useState([]);
+  const [attachFileTypeId, setAttachFileTypeId] = useState(null);
+  const [attachRefreshToken, setAttachRefreshToken] = useState(0);
   const axiosPrivate = useAxiosPrivate();
   const [snackbar, setSnackbar] = useState({
     isOpen: false,
@@ -221,6 +227,23 @@ const OrderDetail = ({ orderId }) => {
       });
     }
     setLoading(false);
+  };
+
+  const handleAttach = async () => {
+    try {
+      const response = await axiosPrivate.get("/api/Type/file-type");
+      const options = (response.data || []).map((item) => ({ id: item.id, label: item.name }));
+      setOptionFileType(options);
+      setAttachFileTypeId((options.find((t) => t.label === "受注書") || {}).id || null);
+    } catch (error) {
+      setOptionFileType([]);
+    }
+    setShowAttachDialog(true);
+  };
+
+  const closeAttachDialog = () => {
+    setShowAttachDialog(false);
+    setAttachRefreshToken((v) => v + 1);
   };
 
   const handleAddRow = () => {
@@ -548,10 +571,35 @@ const OrderDetail = ({ orderId }) => {
             <div className="handle-button">
               <FormButton itemName="保存" type="submit" />
               <FormButton itemName="新規作成" onClick={handleClear} />
+              <FormButton
+                itemName="関連書類の添付"
+                buttonType="attach"
+                titleContent={!dataId ? "受注を保存してから書類の添付や管理が行えます。" : ""}
+                onClick={handleAttach}
+                disabled={!dataId}
+              />
             </div>
           </Grid>
+          {dataId && (
+            <Grid item xs={12}>
+              <AttachedFilesList
+                entityType="Order"
+                entityId={dataId}
+                refreshToken={attachRefreshToken}
+              />
+            </Grid>
+          )}
         </Grid>
       </form>
+      <DialogHandle
+        open={showAttachDialog}
+        closeDialog={closeAttachDialog}
+        title="関連書類の添付"
+        optionFileType={optionFileType}
+        entityType="Order"
+        entityId={dataId}
+        fixedFileTypeId={attachFileTypeId}
+      />
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />
     </section>

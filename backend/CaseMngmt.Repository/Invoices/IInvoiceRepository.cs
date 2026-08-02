@@ -10,6 +10,7 @@ namespace CaseMngmt.Repository.Invoices
         Task<Invoice?> GetByIdAsync(Guid id, Guid companyId);
         Task<Invoice?> GetByOrderIdAsync(Guid orderId, Guid companyId);
         Task<int> UpdateStatusAsync(Guid id, Guid companyId, string status, Guid currentUserId);
+        Task<int> UpdatePdfPathAsync(Guid id, Guid companyId, string pdfPath);
         Task<int> GetInvoiceCountAsync(Guid companyId, int year);
         Task<List<Invoice>> GetAllForDashboardAsync(Guid companyId);
     }

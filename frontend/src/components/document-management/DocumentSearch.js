@@ -28,6 +28,7 @@ import CaseDetail from "../CaseDetail.js";
 import PurchaseOrderDetail from "../PurchaseOrderDetail.js";
 import GoodsReceiptDetail from "../GoodsReceiptDetail.js";
 import PurchaseInvoiceDetail from "../PurchaseInvoiceDetail.js";
+import OrderDetail from "../OrderDetail.js";
 import FormSnackbar from "../until/FormSnackbar.js";
 
 const entityTypeLabel = {
@@ -35,6 +36,8 @@ const entityTypeLabel = {
   PurchaseOrder: "発注書",
   GoodsReceipt: "入荷",
   PurchaseInvoice: "仕入請求書",
+  Order: "受注",
+  Invoice: "請求書",
 };
 
 const DocumentSearch = () => {
@@ -454,16 +457,18 @@ const DocumentSearch = () => {
                             削除
                           </Button>
                           <br />{" "}
-                          <Button
-                            variant="contained"
-                            startIcon={<Icons.Assignment />}
-                            style={{ marginTop: "5px" }}
-                            onClick={() => {
-                              handleClickViewDetail(item);
-                            }}
-                          >
-                            詳細表示
-                          </Button>{" "}
+                          {item.entityType !== "Invoice" && (
+                            <Button
+                              variant="contained"
+                              startIcon={<Icons.Assignment />}
+                              style={{ marginTop: "5px" }}
+                              onClick={() => {
+                                handleClickViewDetail(item);
+                              }}
+                            >
+                              詳細表示
+                            </Button>
+                          )}{" "}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -680,6 +685,9 @@ const DocumentSearch = () => {
         )}
         {viewTarget.entityType === "PurchaseInvoice" && (
           <PurchaseInvoiceDetail purchaseInvoiceId={viewTarget.entityId} />
+        )}
+        {viewTarget.entityType === "Order" && (
+          <OrderDetail orderId={viewTarget.entityId} />
         )}
         {(!viewTarget.entityType || viewTarget.entityType === "Case") && (
           <CaseDetail caseId={viewTarget.entityId} createType={false} />

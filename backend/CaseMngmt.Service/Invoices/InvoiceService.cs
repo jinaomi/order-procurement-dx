@@ -1,10 +1,18 @@
 using CaseMngmt.Models;
+using CaseMngmt.Models.EntityKeywords;
+using CaseMngmt.Models.FileUploads;
 using CaseMngmt.Models.Invoices;
+using CaseMngmt.Models.Orders;
 using CaseMngmt.Repository.Companies;
 using CaseMngmt.Repository.Customers;
 using CaseMngmt.Repository.Invoices;
 using CaseMngmt.Repository.Orders;
 using CaseMngmt.Repository.Products;
+using CaseMngmt.Repository.Types;
+using CaseMngmt.Service.EntityKeywords;
+using CaseMngmt.Service.FileUploads;
+using CaseMngmt.Service.Templates;
+using Microsoft.Extensions.Configuration;
 
 namespace CaseMngmt.Service.Invoices
 {
@@ -16,6 +24,11 @@ namespace CaseMngmt.Service.Invoices
         private readonly ICustomerRepository _customerRepository;
         private readonly IProductRepository _productRepository;
         private readonly IInvoicePdfService _pdfService;
+        private readonly IEntityKeywordService _entityKeywordService;
+        private readonly ITemplateService _templateService;
+        private readonly ITypeRepository _typeRepository;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IConfiguration _configuration;
 
         private static readonly string[] InvoiceableStatuses = { "Confirmed" };
 
@@ -25,7 +38,12 @@ namespace CaseMngmt.Service.Invoices
             ICompanyRepository companyRepository,
             ICustomerRepository customerRepository,
             IProductRepository productRepository,
-            IInvoicePdfService pdfService)
+            IInvoicePdfService pdfService,
+            IEntityKeywordService entityKeywordService,
+            ITemplateService templateService,
+            ITypeRepository typeRepository,
+            IFileUploadService fileUploadService,
+            IConfiguration configuration)
         {
             _repository = repository;
             _orderRepository = orderRepository;
@@ -33,6 +51,11 @@ namespace CaseMngmt.Service.Invoices
             _customerRepository = customerRepository;
             _productRepository = productRepository;
             _pdfService = pdfService;
+            _entityKeywordService = entityKeywordService;
+            _templateService = templateService;
+            _typeRepository = typeRepository;
+            _fileUploadService = fileUploadService;
+            _configuration = configuration;
         }
 
         public async Task<InvoiceCreateResult> CreateFromOrderAsync(Guid orderId, Guid companyId, Guid currentUserId)
@@ -111,7 +134,90 @@ namespace CaseMngmt.Service.Invoices
                 }
             }
 
+            await AttachGeneratedPdfAsync(invoice, order, companyId, currentUserId);
+
             return new InvoiceCreateResult { StatusCode = result, InvoiceId = invoice.Id };
+        }
+
+        // Persists the invoice PDF once at creation time (instead of only ever regenerating it
+        // on download) by attaching it through the same EntityKeyword mechanism already used for
+        // PurchaseOrder/GoodsReceipt/PurchaseInvoice documents, so it also surfaces automatically
+        // in the unified 書類管理 search. Best-effort: a failure here must not fail invoice
+        // creation, mirroring how AI照合 failures don't fail order creation in OrderController.
+        private async Task AttachGeneratedPdfAsync(Invoice invoice, Order order, Guid companyId, Guid currentUserId)
+        {
+            try
+            {
+                var company = await _companyRepository.GetByIdAsync(companyId);
+                var customer = await _customerRepository.GetByIdAsync(order.CustomerId);
+                if (company == null || customer == null)
+                {
+                    return;
+                }
+
+                var pdfBytes = _pdfService.GeneratePdf(invoice, order, company, customer);
+                var fileType = await _typeRepository.GetByTypeNameAsync("請求書");
+                if (fileType == null)
+                {
+                    return;
+                }
+
+                var template = await _templateService.EnsureModuleTemplateAsync(companyId, "Invoice");
+                if (template == null)
+                {
+                    return;
+                }
+
+                var fileName = $"{invoice.InvoiceNumber}.pdf";
+                var fileUpload = new EntityFileUpload
+                {
+                    EntityType = "Invoice",
+                    EntityId = invoice.Id,
+                    FileTypeId = fileType.Id,
+                    FileName = fileName,
+                    FileToUpload = new InMemoryFormFile(pdfBytes, fileName, "application/pdf")
+                };
+
+                var (fileSetting, awsSetting) = BuildFileSettings();
+
+                var uploadResult = await _fileUploadService.UploadEntityFileAsync(fileUpload, fileSetting, awsSetting);
+                if (uploadResult == null)
+                {
+                    return;
+                }
+
+                await _entityKeywordService.AddFileToEntityKeywordAsync(
+                    "Invoice", invoice.Id, fileType.Id, uploadResult, template.Id, currentUserId);
+
+                await _repository.UpdatePdfPathAsync(invoice.Id, companyId, uploadResult.FilePath);
+            }
+            catch (Exception)
+            {
+                // Non-fatal: the invoice itself was already registered successfully.
+            }
+        }
+
+        private (FileUploadSetting, AWSSetting?) BuildFileSettings()
+        {
+            var fileSetting = new FileUploadSetting
+            {
+                AcceptTypes = _configuration["FileUploadSettings:acceptTypes"],
+                InvalidFileExtensions = _configuration["FileUploadSettings:invalidFileExtensions"],
+                UploadFolder = _configuration["FileUploadSettings:uploadFolder"],
+                ValidFileTypes = _configuration["FileUploadSettings:validFileTypes"],
+            };
+            AWSSetting? awsSetting = null;
+            if (!string.IsNullOrEmpty(_configuration["AWS:S3Bucket"]))
+            {
+                awsSetting = new AWSSetting
+                {
+                    S3Bucket = _configuration["AWS:S3Bucket"],
+                    ACCESS_KEY = _configuration["AWS:ACCESS_KEY"],
+                    SECRET_KEY = _configuration["AWS:SECRET_KEY"],
+                    UploadFolder = _configuration["AWS:UploadFolder"]
+                };
+            }
+            return (fileSetting, awsSetting);
         }
 
         public async Task<PagedResult<InvoiceViewModel>?> GetAllInvoicesAsync(Guid companyId, Guid? customerId, string? status, string? orderNumber, DateTime? issueDateFrom, DateTime? issueDateTo, int pageSize, int pageNumber)
@@ -167,6 +273,35 @@ namespace CaseMngmt.Service.Invoices
         {
             var invoice = await _repository.GetByIdAsync(id, companyId);
             return invoice == null ? null : $"{invoice.InvoiceNumber}.pdf";
+        }
+
+        // Prefers the PDF persisted at invoice-creation time (see AttachGeneratedPdfAsync) so
+        // 書類管理/downloads all read the same file; falls back to regenerating on the fly for
+        // invoices created before this attachment existed, or if the persisted file went missing.
+        public async Task<byte[]?> GetOrGeneratePdfAsync(Guid id, Guid companyId)
+        {
+            try
+            {
+                var attachedFiles = await _entityKeywordService.GetFileKeywordsByEntityAsync("Invoice", id);
+                var pdfFile = attachedFiles.FirstOrDefault(f => f.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase));
+                if (pdfFile != null)
+                {
+                    var (fileSetting, awsSetting) = BuildFileSettings();
+                    var filePath = await _fileUploadService.GetEntityFilePath(pdfFile.FileName, "Invoice", id, fileSetting, awsSetting);
+                    if (filePath != null)
+                    {
+                        return awsSetting == null
+                            ? await File.ReadAllBytesAsync(filePath)
+                            : await _fileUploadService.DownloadFileS3Async(filePath, awsSetting);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Fall through to on-the-fly regeneration below.
+            }
+
+            return await GeneratePdfAsync(id, companyId);
         }
 
         private static InvoiceViewModel MapToViewModel(Invoice invoice)

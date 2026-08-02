@@ -146,7 +146,7 @@ namespace CaseMngmt.Server.Controllers
                 }
 
                 var companyId = Guid.Parse(currentCompanyId);
-                var pdfBytes = await _service.GeneratePdfAsync(id, companyId);
+                var pdfBytes = await _service.GetOrGeneratePdfAsync(id, companyId);
                 if (pdfBytes == null)
                 {
                     return NotFound();

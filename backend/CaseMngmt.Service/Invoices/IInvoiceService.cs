@@ -12,5 +12,6 @@ namespace CaseMngmt.Service.Invoices
         Task<int> UpdateStatusAsync(Guid id, Guid companyId, string status, Guid currentUserId);
         Task<byte[]?> GeneratePdfAsync(Guid id, Guid companyId);
         Task<string?> GetInvoiceFileNameAsync(Guid id, Guid companyId);
+        Task<byte[]?> GetOrGeneratePdfAsync(Guid id, Guid companyId);
     }
 }

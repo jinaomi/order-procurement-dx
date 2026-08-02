@@ -192,6 +192,36 @@ const OrderIntakeUpload = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Attaches the original 受注書 image that was uploaded for AI extraction to the newly created
+  // order, so the source document isn't discarded once the data has been extracted from it.
+  // Best-effort: the order itself is already saved by this point, so a failure here is
+  // swallowed rather than surfaced as an error to avoid implying the whole registration failed.
+  const attachSourceFile = async (orderId) => {
+    if (!file || !orderId) {
+      return;
+    }
+    try {
+      const typeResponse = await axiosPrivate.get("/api/Type/file-type");
+      const fileTypes = typeResponse.data || [];
+      const fileType =
+        fileTypes.find((t) => t.name === "受注書") ||
+        fileTypes.find((t) => t.name === "その他") ||
+        fileTypes[0];
+      if (!fileType) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append("FileToUpload", file);
+      formData.append("EntityType", "Order");
+      formData.append("EntityId", orderId);
+      formData.append("FileTypeId", fileType.id);
+      formData.append("FileName", file.name);
+      await axiosPrivate.post("/api/FileUpload/UploadEntity", formData);
+    } catch (error) {
+      // Non-fatal: the order itself was already registered successfully.
+    }
+  };
+
   const handleConfirm = async () => {
     if (!validateForm()) {
       setSnackbar({
@@ -218,7 +248,8 @@ const OrderIntakeUpload = () => {
     };
 
     try {
-      await orderService.create(axiosPrivate, payload);
+      const response = await orderService.create(axiosPrivate, payload);
+      await attachSourceFile(response.data);
       setSnackbar({
         isOpen: true,
         status: "success",

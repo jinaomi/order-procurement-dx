@@ -133,6 +133,26 @@ namespace CaseMngmt.Repository.Invoices
             }
         }
 
+        public async Task<int> UpdatePdfPathAsync(Guid id, Guid companyId, string pdfPath)
+        {
+            try
+            {
+                var invoice = await _context.Invoice.FirstOrDefaultAsync(x => x.Id == id && x.CompanyId == companyId && !x.Deleted);
+                if (invoice == null)
+                {
+                    return 0;
+                }
+
+                invoice.PdfPath = pdfPath;
+                await _context.SaveChangesAsync();
+                return 1;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
         public async Task<List<Invoice>> GetAllForDashboardAsync(Guid companyId)
         {
             try

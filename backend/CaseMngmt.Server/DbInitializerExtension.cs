@@ -44,6 +44,7 @@ namespace CaseMngmt.Server
                 {
                     // Existing install: seed Standard Template if missing (idempotent)
                     await SeedStandardTemplateIfNeededAsync(context, templateManager, keywordManager);
+                    await SeedOrderFileTypeIfNeededAsync(context, typeManager);
                     return app;
                 }
                 await companyManager.AddAsync(new Models.Companies.Company
@@ -540,6 +541,7 @@ namespace CaseMngmt.Server
 
                 // New install: seed Standard Template after types are available
                 await SeedStandardTemplateIfNeededAsync(context, templateManager, keywordManager);
+                await SeedOrderFileTypeIfNeededAsync(context, typeManager);
             }
             catch (Exception ex)
             {
@@ -579,6 +581,19 @@ namespace CaseMngmt.Server
                 new Keyword { Name = "住所",     TypeId = alphaType.Id, TemplateId = standardTemplateId, MaxLength = 500, IsRequired = false, Order = 2 },
                 new Keyword { Name = "電話番号", TypeId = alphaType.Id, TemplateId = standardTemplateId, MaxLength = 20,  IsRequired = false, Order = 3 },
                 new Keyword { Name = "作成日",   TypeId = dateType.Id,  TemplateId = standardTemplateId,                 IsRequired = true,  Order = 4 },
+            });
+        }
+
+        private static async Task SeedOrderFileTypeIfNeededAsync(ApplicationDbContext context, ITypeRepository typeManager)
+        {
+            if (context.Type.Any(t => t.Name == "受注書" && t.IsFileType))
+                return;
+
+            await typeManager.AddAsync(new Models.Types.Type
+            {
+                Name = "受注書",
+                Value = "string",
+                IsFileType = true,
             });
         }
     }
