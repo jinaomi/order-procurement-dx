@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CaseMngmt.Models.EntityKeywords;
 
 namespace CaseMngmt.Models.GoodsReceipts
 {
@@ -25,5 +26,7 @@ namespace CaseMngmt.Models.GoodsReceipts
         [Required]
         [MinLength(1, ErrorMessage = "Goods receipt must have at least one item.")]
         public List<GoodsReceiptItemRequest> GoodsReceiptItems { get; set; } = new List<GoodsReceiptItemRequest>();
+
+        public List<EntityKeywordValueRequest> CustomFieldValues { get; set; } = new();
     }
 }

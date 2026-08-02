@@ -1,3 +1,5 @@
+using CaseMngmt.Models.EntityKeywords;
+
 namespace CaseMngmt.Models.GoodsReceipts
 {
     public class GoodsReceiptViewModel
@@ -18,5 +20,6 @@ namespace CaseMngmt.Models.GoodsReceipts
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
         public List<GoodsReceiptItemViewModel> GoodsReceiptItems { get; set; } = new List<GoodsReceiptItemViewModel>();
+        public List<EntityKeywordValue> CustomFieldValues { get; set; } = new();
     }
 }

@@ -9,6 +9,7 @@ import GenericItems from "../until/GenericItems.js";
 import ContentDialog from "../until/ContentDialog.js";
 import commonState from "../../stories/commonState.ts";
 import commonActions from "../../actions/commonAction.ts";
+import supplierService from "../../services/supplierService";
 import * as _ from "lodash";
 import {
   Button,
@@ -54,6 +55,15 @@ const DocumentSearch = () => {
     label: "",
   });
   const [customerList, setCustomerList] = useState([]);
+  const [supplierList, setSupplierList] = useState([]);
+  const [fixedFilter, setFixedFilter] = useState({
+    dateFrom: "",
+    dateTo: "",
+    customerId: null,
+    customerLabel: "",
+    supplierId: null,
+    supplierLabel: "",
+  });
   const [deleteItem, setDeleteItem] = useState({
     keywordId: null,
     caseId: null,
@@ -86,6 +96,12 @@ const DocumentSearch = () => {
     setListItem([]);
     setUrlPreviewImg({ blobUrl: "", fileName: "" });
     await getDocumentTemplate();
+    try {
+      const supplierResponse = await supplierService.list(axiosPrivate);
+      setSupplierList(supplierResponse.data || []);
+    } catch (error) {
+      setSupplierList([]);
+    }
   }, []);
 
   const getFiles = async (e) => {
@@ -111,6 +127,10 @@ const DocumentSearch = () => {
       keywordValues: keywordValues,
       keywordDateValues: keywordDateValues,
       keywordDecimalValues: keywordDecimalValues,
+      dateFrom: fixedFilter.dateFrom || null,
+      dateTo: fixedFilter.dateTo || null,
+      customerId: fixedFilter.customerId,
+      supplierId: fixedFilter.supplierId,
       pageSize: commonState.paginationState.pageSize,
       pageNumber: commonState.paginationState.currentPage,
     };
@@ -313,6 +333,7 @@ const DocumentSearch = () => {
       }))
     );
     setFileTypeSearch({ ...fileTypeSearch, value: null, label: "" });
+    setFixedFilter({ dateFrom: "", dateTo: "", customerId: null, customerLabel: "", supplierId: null, supplierLabel: "" });
   };
 
   const handleChangePageSize = async (e) => {
@@ -379,6 +400,7 @@ const DocumentSearch = () => {
                 </TableCell>
                 <TableCell>書類名</TableCell>
                 <TableCell>種別</TableCell>
+                <TableCell>対象レコード</TableCell>
                 <TableCell style={{ minWidth: "400px", textAlign: "right" }}>操作</TableCell>
               </TableRow>
             </TableHead>
@@ -403,6 +425,7 @@ const DocumentSearch = () => {
                         <Truncate str={item.keywordName} maxLength={20} />
                       </TableCell>
                       <TableCell>{entityTypeLabel[item.entityType] || item.entityType || "案件"}</TableCell>
+                      <TableCell>{item.entityDisplayName || "-"}</TableCell>
                       <TableCell
                         style={{
                           minWidth: "400px",
@@ -476,7 +499,7 @@ const DocumentSearch = () => {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     <span style={{ color: "#000" }}>
                       表示する項目がありません。
                     </span>
@@ -556,10 +579,9 @@ const DocumentSearch = () => {
         a.order > b.order ? 1 : b.order > a.order ? -1 : 0
       );
     }
-    const mid = Math.ceil((template.length + 1) / 2);
     return (
       <>
-        <Grid item xs={6}>
+        <Grid item xs={12} sm={6}>
           <GenericItems
             value={fileTypeSearch.label}
             label={"書類種類"}
@@ -573,29 +595,60 @@ const DocumentSearch = () => {
               });
             }}
           />
-
-          {template.map((templateItem, index) => {
-            if (index + 1 < mid) {
-              return keyWordSearch.map((item) => {
-                if (item.keywordId === templateItem.keywordId) {
-                  return dynamicGenerate(item, templateItem);
-                }
-              });
-            }
-          })}
         </Grid>
-        <Grid item xs={6}>
-          {/* Add the second half of the input fields here */}
-          {template.map((templateItem, index) => {
-            if (index + 1 >= mid) {
-              return keyWordSearch.map((item) => {
-                if (item.keywordId === templateItem.keywordId) {
-                  return dynamicGenerate(item, templateItem);
-                }
-              });
+        <Grid item xs={12} sm={6}>
+          <GenericItems
+            value1={fixedFilter.dateFrom}
+            value2={fixedFilter.dateTo}
+            label="対象日（受注日・発注日・入荷日等）"
+            type="daterange"
+            handleInput1={(e) =>
+              setFixedFilter((v) => ({ ...v, dateFrom: e.target.value }))
             }
-          })}
+            handleInput2={(e) =>
+              setFixedFilter((v) => ({ ...v, dateTo: e.target.value }))
+            }
+          />
         </Grid>
+        <Grid item xs={12} sm={6}>
+          <GenericItems
+            value={fixedFilter.customerLabel}
+            label="取引先（受注・請求書）"
+            type="list"
+            options={customerList}
+            handleInput3={(e, item) =>
+              setFixedFilter((v) => ({
+                ...v,
+                customerId: item ? item.id : null,
+                customerLabel: item ? item.label : "",
+              }))
+            }
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <GenericItems
+            value={fixedFilter.supplierLabel}
+            label="仕入先（発注・入荷・仕入請求書）"
+            type="list"
+            options={supplierList}
+            handleInput3={(e, item) =>
+              setFixedFilter((v) => ({
+                ...v,
+                supplierId: item ? item.id : null,
+                supplierLabel: item ? item.label : "",
+              }))
+            }
+          />
+        </Grid>
+        {template.map((templateItem) => {
+          const item = keyWordSearch.find((k) => k.keywordId === templateItem.keywordId);
+          if (!item) return null;
+          return (
+            <Grid item xs={12} sm={6} key={templateItem.keywordId}>
+              {dynamicGenerate(item, templateItem)}
+            </Grid>
+          );
+        })}
       </>
     );
   };

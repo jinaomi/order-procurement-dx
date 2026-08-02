@@ -234,6 +234,7 @@ namespace CaseMngmt.Repository.CaseKeywords
                         .Select(x => new CaseKeywordBaseValue
                         {
                             CaseId = x.tempCase.Id,
+                            EntityDisplayName = x.tempCase.Name,
                             KeywordId = x.caseKeyword.Keyword.Id,
                             KeywordName = x.caseKeyword.Keyword.Name,
                             Value = x.caseKeyword.Value,

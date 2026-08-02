@@ -1,3 +1,5 @@
+using CaseMngmt.Models.EntityKeywords;
+
 namespace CaseMngmt.Models.PurchaseInvoices
 {
     public class PurchaseInvoiceViewModel
@@ -20,5 +22,6 @@ namespace CaseMngmt.Models.PurchaseInvoices
         public DateTime? PaidDate { get; set; }
         public string? Note { get; set; }
         public DateTime CreatedDate { get; set; }
+        public List<EntityKeywordValue> CustomFieldValues { get; set; } = new();
     }
 }

@@ -122,11 +122,14 @@ namespace CaseMngmt.Service.EntityKeywords
             }
         }
 
-        public async Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId)
+        public async Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId,
+            List<KeywordValue> keywordValues, List<KeywordSearchRangeValue> keywordDateValues, List<KeywordSearchRangeValue> keywordDecimalValues,
+            DateTime? dateFrom, DateTime? dateTo, Guid? customerId, Guid? supplierId)
         {
             try
             {
-                var result = await _repository.GetDocumentFilesAsync(companyId, entityTypes, fileTypeId);
+                var result = await _repository.GetDocumentFilesAsync(companyId, entityTypes, fileTypeId,
+                    keywordValues, keywordDateValues, keywordDecimalValues, dateFrom, dateTo, customerId, supplierId);
                 foreach (var item in result)
                 {
                     string ext = Path.GetExtension(item.KeywordName).ToLower();

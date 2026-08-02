@@ -52,6 +52,11 @@ const TemplateList = () => {
     Case: "案件管理",
     Product: "商品管理",
     Order: "受注管理",
+    Invoice: "請求書管理",
+    Supplier: "仕入先管理",
+    PurchaseOrder: "発注管理",
+    GoodsReceipt: "入荷管理",
+    PurchaseInvoice: "仕入請求書管理",
   };
 
   const formatDate = (dateStr) => {

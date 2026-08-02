@@ -243,6 +243,23 @@ namespace CaseMngmt.Repository.Keywords
             }
         }
 
+        public async Task<Dictionary<Guid, string>> GetModuleTypesByKeywordIdsAsync(List<Guid> keywordIds)
+        {
+            try
+            {
+                var query = from keyword in _context.Keyword
+                            join template in _context.Template on keyword.TemplateId equals template.Id
+                            where keywordIds.Contains(keyword.Id)
+                            select new { keyword.Id, template.ModuleType };
+                var result = await query.ToListAsync();
+                return result.ToDictionary(x => x.Id, x => x.ModuleType);
+            }
+            catch (Exception ex)
+            {
+                return new Dictionary<Guid, string>();
+            }
+        }
+
         public async Task<int> SoftHideAsync(Guid id)
         {
             try

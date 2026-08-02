@@ -12,6 +12,11 @@ namespace CaseMngmt.Models.CaseKeywords
         // avoid touching CaseKeywordRepository.GetDocumentsAsync's already-working projection).
         public string EntityType { get; set; } = "Case";
         public Guid? EntityId { get; set; }
+        // Human-readable identifier of the source record (Case.Name / Order.OrderNumber /
+        // PurchaseOrder.PurchaseOrderNumber / etc — every entity's BaseModel.Name is set to its
+        // generated document number at creation time), so 書類管理 results can show which record a
+        // file belongs to without opening 詳細表示.
+        public string? EntityDisplayName { get; set; }
         [Required]
         public Guid KeywordId { get; set; }
         [MaxLength(256)]

@@ -1,9 +1,9 @@
 ﻿using CaseMngmt.Models;
 using CaseMngmt.Models.CaseKeywords;
 using CaseMngmt.Service.CaseKeywords;
-using CaseMngmt.Service.CompanyTemplates;
 using CaseMngmt.Service.EntityKeywords;
 using CaseMngmt.Service.FileUploads;
+using CaseMngmt.Service.Keywords;
 using CaseMngmt.Service.Templates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,20 +26,20 @@ namespace CaseMngmt.Server.Controllers
         private readonly IFileUploadService _fileUploadService;
         private readonly ITemplateService _templateService;
         private readonly ICaseKeywordService _caseKeywordService;
-        private readonly ICompanyTemplateService _companyTemplateService;
         private readonly IEntityKeywordService _entityKeywordService;
+        private readonly IKeywordService _keywordService;
         private readonly IConfiguration _configuration;
 
         public DocumentController(ILogger<DocumentController> logger,
             IFileUploadService fileUploadService, ITemplateService templateService, ICaseKeywordService caseKeywordService,
-            ICompanyTemplateService companyTemplateService, IEntityKeywordService entityKeywordService, IConfiguration configuration)
+            IEntityKeywordService entityKeywordService, IKeywordService keywordService, IConfiguration configuration)
         {
             _logger = logger;
             _fileUploadService = fileUploadService;
             _templateService = templateService;
             _caseKeywordService = caseKeywordService;
-            _companyTemplateService = companyTemplateService;
             _entityKeywordService = entityKeywordService;
+            _keywordService = keywordService;
             _configuration = configuration;
         }
 
@@ -53,14 +53,8 @@ namespace CaseMngmt.Server.Controllers
                 {
                     return BadRequest();
                 }
-                var companyTemplate = await _companyTemplateService.GetTemplateByCompanyIdAsync(Guid.Parse(companyId));
-                var templateId = companyTemplate.FirstOrDefault()?.TemplateId;
-                if (templateId == null || templateId == Guid.Empty)
-                {
-                    return BadRequest();
-                }
 
-                DocumentTemplateResponse? result = await _templateService.GetDocumentSearchModelByIdAsync(templateId.Value, Guid.Parse(companyId));
+                DocumentTemplateResponse? result = await _templateService.GetDocumentSearchModelByIdAsync(Guid.Parse(companyId));
 
                 if (result == null)
                 {
@@ -103,23 +97,42 @@ namespace CaseMngmt.Server.Controllers
                 {
                     return BadRequest();
                 }
-                var companyTemplate = await _companyTemplateService.GetTemplateByCompanyIdAsync(Guid.Parse(companyId));
-                var templateId = companyTemplate.FirstOrDefault()?.TemplateId;
-                if (templateId == null || templateId == Guid.Empty)
+                var caseTemplate = await _templateService.EnsureModuleTemplateAsync(Guid.Parse(companyId), "Case");
+                if (caseTemplate == null)
                 {
                     return BadRequest();
                 }
 
+                // Now that the search form can surface DocumentSearchable fields from Order/PurchaseOrder/
+                // etc alongside Case's, a single request may carry KeywordValues/date/decimal criteria whose
+                // KeywordId belongs to different modules. Each downstream query (Case's group-by-Case,
+                // Entity's group-by-EntityType+EntityId) uses an ".All(...) must find a match" check, so
+                // handing it a criterion for a KeywordId it can never see would wrongly zero out ALL of its
+                // results. Partition by the keyword's owning module before dispatching.
+                var allKeywordIds = (request.KeywordValues?.Select(x => x.KeywordId) ?? Enumerable.Empty<Guid>())
+                    .Concat(request.KeywordDateValues?.Select(x => x.KeywordId) ?? Enumerable.Empty<Guid>())
+                    .Concat(request.KeywordDecimalValues?.Select(x => x.KeywordId) ?? Enumerable.Empty<Guid>())
+                    .Distinct().ToList();
+                var moduleTypesByKeywordId = await _keywordService.GetModuleTypesByKeywordIdsAsync(allKeywordIds);
+
+                var caseKeywordValues = request.KeywordValues?.Where(x => (moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) ?? "Case") == "Case").ToList();
+                var caseKeywordDateValues = request.KeywordDateValues?.Where(x => (moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) ?? "Case") == "Case").ToList();
+                var caseKeywordDecimalValues = request.KeywordDecimalValues?.Where(x => (moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) ?? "Case") == "Case").ToList();
+
+                var entityKeywordValues = request.KeywordValues?.Where(x => moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) is string mt && mt != "Case").ToList();
+                var entityKeywordDateValues = request.KeywordDateValues?.Where(x => moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) is string mt && mt != "Case").ToList();
+                var entityKeywordDecimalValues = request.KeywordDecimalValues?.Where(x => moduleTypesByKeywordId.GetValueOrDefault(x.KeywordId) is string mt && mt != "Case").ToList();
+
                 var searchRequest = new DocumentSearchRequest
                 {
                     CompanyId = Guid.Parse(companyId),
-                    TemplateId = templateId.Value,
+                    TemplateId = caseTemplate.Id,
                     FileTypeId = request.FileTypeId,
                     PageNumber = request.PageNumber ?? 1,
                     PageSize = request.PageSize ?? 25,
-                    KeywordValues = request.KeywordValues,
-                    KeywordDateValues= request.KeywordDateValues,
-                    KeywordDecimalValues = request.KeywordDecimalValues
+                    KeywordValues = caseKeywordValues,
+                    KeywordDateValues= caseKeywordDateValues,
+                    KeywordDecimalValues = caseKeywordDecimalValues
                 };
 
                 var result = await _caseKeywordService.GetDocumentsAsync(searchRequest);
@@ -137,7 +150,9 @@ namespace CaseMngmt.Server.Controllers
                 if (searchRequest.PageNumber <= 1)
                 {
                     var entityDocs = await _entityKeywordService.GetDocumentFilesAsync(
-                        Guid.Parse(companyId), UnifiedSearchEntityTypes, request.FileTypeId);
+                        Guid.Parse(companyId), UnifiedSearchEntityTypes, request.FileTypeId,
+                        entityKeywordValues, entityKeywordDateValues, entityKeywordDecimalValues,
+                        request.DateFrom, request.DateTo, request.CustomerId, request.SupplierId);
                     if (entityDocs.Count > 0)
                     {
                         result.Items = entityDocs.Concat(result.Items);

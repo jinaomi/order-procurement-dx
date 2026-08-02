@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
-import { Grid, Chip, Alert } from "@mui/material";
+import { Grid, Chip, Alert, Divider } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
 import DialogHandle from "./until/DialogHandle";
 import AttachedFilesList from "./until/AttachedFilesList";
+import CustomFieldsSection from "./until/CustomFieldsSection";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import purchaseInvoiceService from "../services/purchaseInvoiceService";
 import purchaseOrderService from "../services/purchaseOrderService";
+import templateService from "../services/templateService";
 
 const statusColor = { Recorded: "info", Paid: "success" };
 const statusLabel = { Recorded: "記録済み", Paid: "支払済み" };
@@ -30,6 +32,8 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState("");
   const [note, setNote] = useState("");
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState([]);
 
   // View mode
   const [viewData, setViewData] = useState(null);
@@ -75,6 +79,12 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
       setPurchaseOrders(eligible.map((po) => ({ ...po, label: po.purchaseOrderNumber })));
     } catch (error) {
       setPurchaseOrders([]);
+    }
+    try {
+      const templateResponse = await templateService.getModuleTemplate(axiosPrivate, "PurchaseInvoice");
+      setCustomFields(templateResponse.data?.keywords || []);
+    } catch (error) {
+      setCustomFields([]);
     }
   };
 
@@ -127,6 +137,7 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
       issueDate,
       supplierInvoiceNumber: supplierInvoiceNumber || null,
       note,
+      customFieldValues,
     };
 
     try {
@@ -141,6 +152,7 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
       setSelectedPurchaseOrder(null);
       setSupplierInvoiceNumber("");
       setNote("");
+      setCustomFieldValues([]);
     } catch (error) {
       setSnackbar({
         isOpen: true,
@@ -199,6 +211,22 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
               <Grid item xs={12}>
                 <b>備考：</b> {viewData.note}
               </Grid>
+            )}
+            {viewData.customFieldValues && viewData.customFieldValues.length > 0 && (
+              <>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }}>
+                    <Chip label="カスタム項目" size="small" variant="outlined" />
+                  </Divider>
+                </Grid>
+                {[...viewData.customFieldValues]
+                  .sort((a, b) => a.order - b.order)
+                  .map((v) => (
+                    <Grid item xs={6} key={v.keywordId}>
+                      <b>{v.keywordName}：</b> {v.value}
+                    </Grid>
+                  ))}
+              </>
             )}
             <Grid item xs={12}>
               <div className="handle-button">
@@ -303,6 +331,11 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
               ></textarea>
             </div>
           </Grid>
+          <CustomFieldsSection
+            fields={customFields}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
           <Grid item xs={12}>
             <div className="handle-button">
               <FormButton itemName="登録" type="submit" />

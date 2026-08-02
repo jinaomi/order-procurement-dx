@@ -6,6 +6,10 @@
         public List<KeywordValue> KeywordValues { get; set; }
         public List<KeywordSearchRangeValue> KeywordDateValues { get; set; }
         public List<KeywordSearchRangeValue> KeywordDecimalValues { get; set; }
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+        public Guid? CustomerId { get; set; }
+        public Guid? SupplierId { get; set; }
         public int? PageSize { get; set; }
         public int? PageNumber { get; set; }
 

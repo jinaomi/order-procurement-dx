@@ -10,7 +10,7 @@ namespace CaseMngmt.Repository.Templates
         Task<PagedResult<TemplateViewModel>?> GetAllAsync(Guid? companyId, int pageSize, int pageNumber);
         Task<TemplateViewModel?> GetTemplateViewModelByIdAsync(Guid templateId);
         Task<List<KeywordSearchModel>> GetCaseSearchModelByIdAsync(Guid templateId, bool isAdmin);
-        Task<List<KeywordSearchModel>> GetDocumentSearchModelByIdAsync(Guid templateId);
+        Task<List<KeywordSearchModel>> GetDocumentSearchModelByIdAsync(List<Guid> templateIds);
         Task<Template?> GetByIdAsync(Guid id);
         Task<int> DeleteAsync(Guid id);
         Task<int> UpdateAsync(Template customer);

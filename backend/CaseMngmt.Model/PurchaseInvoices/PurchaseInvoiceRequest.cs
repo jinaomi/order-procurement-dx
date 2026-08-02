@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CaseMngmt.Models.EntityKeywords;
 
 namespace CaseMngmt.Models.PurchaseInvoices
 {
@@ -20,5 +21,7 @@ namespace CaseMngmt.Models.PurchaseInvoices
 
         [Required]
         public Guid CompanyId { get; set; }
+
+        public List<EntityKeywordValueRequest> CustomFieldValues { get; set; } = new();
     }
 }

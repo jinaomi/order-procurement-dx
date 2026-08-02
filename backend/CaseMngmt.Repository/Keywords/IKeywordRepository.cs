@@ -16,6 +16,7 @@ namespace CaseMngmt.Repository.Keywords
         Task<List<KeywordViewModel>?> GetByTemplateIdForBuilderAsync(Guid templateId);
         Task<bool> HasCaseKeywordsAsync(Guid keywordId);
         Task<string?> GetModuleTypeByKeywordIdAsync(Guid keywordId);
+        Task<Dictionary<Guid, string>> GetModuleTypesByKeywordIdsAsync(List<Guid> keywordIds);
         Task<int> SoftHideAsync(Guid id);
         Task<int> ReorderAsync(List<KeywordReorderRequest> items);
     }

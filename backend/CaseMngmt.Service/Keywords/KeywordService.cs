@@ -143,5 +143,21 @@ namespace CaseMngmt.Service.Keywords
                 return 0;
             }
         }
+
+        public async Task<Dictionary<Guid, string>> GetModuleTypesByKeywordIdsAsync(List<Guid> keywordIds)
+        {
+            try
+            {
+                if (keywordIds == null || !keywordIds.Any())
+                {
+                    return new Dictionary<Guid, string>();
+                }
+                return await _repository.GetModuleTypesByKeywordIdsAsync(keywordIds);
+            }
+            catch (Exception ex)
+            {
+                return new Dictionary<Guid, string>();
+            }
+        }
     }
 }

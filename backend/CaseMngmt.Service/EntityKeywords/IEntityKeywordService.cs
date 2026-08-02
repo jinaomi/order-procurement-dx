@@ -13,6 +13,8 @@ namespace CaseMngmt.Service.EntityKeywords
         Task<Guid?> AddFileToEntityKeywordAsync(string entityType, Guid entityId, Guid fileTypeId, FileUploadResponse fileResponse, Guid templateId, Guid currentUserId);
         Task<IEnumerable<FileResponse>> GetFileKeywordsByEntityAsync(string entityType, Guid entityId);
         Task<int> DeleteFileEntityKeywordAsync(string entityType, Guid entityId, Guid keywordId);
-        Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId);
+        Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId,
+            List<KeywordValue> keywordValues, List<KeywordSearchRangeValue> keywordDateValues, List<KeywordSearchRangeValue> keywordDecimalValues,
+            DateTime? dateFrom, DateTime? dateTo, Guid? customerId, Guid? supplierId);
     }
 }

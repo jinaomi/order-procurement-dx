@@ -3,6 +3,7 @@ using CaseMngmt.Models.PurchaseInvoices;
 using CaseMngmt.Repository.PurchaseInvoices;
 using CaseMngmt.Repository.PurchaseOrders;
 using CaseMngmt.Repository.Suppliers;
+using CaseMngmt.Service.EntityKeywords;
 
 namespace CaseMngmt.Service.PurchaseInvoices
 {
@@ -11,16 +12,20 @@ namespace CaseMngmt.Service.PurchaseInvoices
         private readonly IPurchaseInvoiceRepository _repository;
         private readonly IPurchaseOrderRepository _purchaseOrderRepository;
         private readonly ISupplierRepository _supplierRepository;
+        private readonly IEntityKeywordService _entityKeywordService;
 
         private const int DefaultPaymentCycleMonths = 1;
         private const int DefaultPaymentDay = 99;
         private const int EndOfMonthSentinel = 99;
+        private const string EntityType = "PurchaseInvoice";
 
-        public PurchaseInvoiceService(IPurchaseInvoiceRepository repository, IPurchaseOrderRepository purchaseOrderRepository, ISupplierRepository supplierRepository)
+        public PurchaseInvoiceService(IPurchaseInvoiceRepository repository, IPurchaseOrderRepository purchaseOrderRepository,
+            ISupplierRepository supplierRepository, IEntityKeywordService entityKeywordService)
         {
             _repository = repository;
             _purchaseOrderRepository = purchaseOrderRepository;
             _supplierRepository = supplierRepository;
+            _entityKeywordService = entityKeywordService;
         }
 
         public async Task<PurchaseInvoiceCreateResult> CreateAsync(PurchaseInvoiceRequest request, Guid currentUserId)
@@ -67,6 +72,7 @@ namespace CaseMngmt.Service.PurchaseInvoices
                     return new PurchaseInvoiceCreateResult { StatusCode = 0, Message = "仕入請求書の作成に失敗しました。" };
                 }
 
+                await _entityKeywordService.ReplaceValuesAsync(EntityType, purchaseInvoice.Id, request.CustomFieldValues, currentUserId);
                 return new PurchaseInvoiceCreateResult { StatusCode = result, PurchaseInvoiceId = purchaseInvoice.Id };
             }
             catch (Exception)
@@ -116,7 +122,14 @@ namespace CaseMngmt.Service.PurchaseInvoices
             try
             {
                 var entity = await _repository.GetByIdAsync(id, companyId);
-                return entity == null ? null : MapToViewModel(entity);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                var result = MapToViewModel(entity);
+                result.CustomFieldValues = await _entityKeywordService.GetByEntityAsync(EntityType, id);
+                return result;
             }
             catch (Exception)
             {

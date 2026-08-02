@@ -252,12 +252,26 @@ namespace CaseMngmt.Service.Templates
             }
         }
 
-        public async Task<DocumentTemplateResponse?> GetDocumentSearchModelByIdAsync(Guid templateId, Guid companyId)
+        // Module types whose DocumentSearchable custom fields should surface as search fields in 書類管理,
+        // mirroring DocumentController.UnifiedSearchEntityTypes (the entity types unified into that same
+        // search) plus "Case" itself.
+        private static readonly string[] DocumentSearchModuleTypes = { "Case", "Order", "PurchaseOrder", "PurchaseInvoice", "GoodsReceipt", "Invoice" };
+
+        public async Task<DocumentTemplateResponse?> GetDocumentSearchModelByIdAsync(Guid companyId)
         {
             try
             {
+                var templateIds = new List<Guid>();
+                foreach (var moduleType in DocumentSearchModuleTypes)
+                {
+                    var template = await EnsureModuleTemplateAsync(companyId, moduleType);
+                    if (template != null)
+                    {
+                        templateIds.Add(template.Id);
+                    }
+                }
 
-                var resultFromRepo = await _repository.GetDocumentSearchModelByIdAsync(templateId);
+                var resultFromRepo = await _repository.GetDocumentSearchModelByIdAsync(templateIds);
                 var fileTypes = await _typeRepository.GetAllFileTypeAsync();
                 var customers = await _customerRepository.GetAllAsync(companyId);
                 DocumentTemplateResponse result = new DocumentTemplateResponse

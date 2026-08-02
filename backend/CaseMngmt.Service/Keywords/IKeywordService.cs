@@ -12,5 +12,6 @@ namespace CaseMngmt.Service.Keywords
         Task<List<KeywordViewModel>?> GetByTemplateIdForBuilderAsync(Guid templateId);
         Task<int> SoftDeleteAsync(Guid id);
         Task<int> ReorderAsync(List<KeywordReorderRequest> items);
+        Task<Dictionary<Guid, string>> GetModuleTypesByKeywordIdsAsync(List<Guid> keywordIds);
     }
 }

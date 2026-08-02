@@ -526,6 +526,15 @@ const KeywordBuilder = () => {
             }
             label="必須"
           />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.documentSearchable}
+                onChange={(e) => handleFormChange("documentSearchable", e.target.checked)}
+              />
+            }
+            label="文書検索対象（書類管理で検索条件として表示）"
+          />
           {editTarget && (
             <FormControlLabel
               control={

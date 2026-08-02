@@ -3,12 +3,14 @@ import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
 import DialogHandle from "./until/DialogHandle";
 import AttachedFilesList from "./until/AttachedFilesList";
-import { Grid, Table, TableBody, TableCell, TableHead, TableRow, Alert } from "@mui/material";
+import CustomFieldsSection from "./until/CustomFieldsSection";
+import { Grid, Table, TableBody, TableCell, TableHead, TableRow, Alert, Chip, Divider } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import goodsReceiptService from "../services/goodsReceiptService";
 import purchaseOrderService from "../services/purchaseOrderService";
+import templateService from "../services/templateService";
 
 const RECEIVABLE_STATUSES = ["Confirmed", "PartiallyReceived"];
 
@@ -30,6 +32,8 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
   const [createdInfo, setCreatedInfo] = useState(null);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldValues, setCustomFieldValues] = useState([]);
 
   // View-only mode state
   const [viewData, setViewData] = useState(null);
@@ -73,6 +77,12 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
       setPurchaseOrders(eligible.map((po) => ({ ...po, label: po.purchaseOrderNumber })));
     } catch (error) {
       setPurchaseOrders([]);
+    }
+    try {
+      const templateResponse = await templateService.getModuleTemplate(axiosPrivate, "GoodsReceipt");
+      setCustomFields(templateResponse.data?.keywords || []);
+    } catch (error) {
+      setCustomFields([]);
     }
   };
 
@@ -168,6 +178,7 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
           productNameRaw: i.productNameRaw,
           receivedQuantity: Number(i.receivedQuantity),
         })),
+      customFieldValues,
     };
 
     try {
@@ -182,6 +193,7 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
       setSelectedPurchaseOrderId(null);
       setItems([]);
       setNote("");
+      setCustomFieldValues([]);
       await loadPurchaseOrders();
     } catch (error) {
       setSnackbar({
@@ -228,6 +240,22 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
               <Grid item xs={12}>
                 <b>備考：</b> {viewData.note}
               </Grid>
+            )}
+            {viewData.customFieldValues && viewData.customFieldValues.length > 0 && (
+              <>
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 1 }}>
+                    <Chip label="カスタム項目" size="small" variant="outlined" />
+                  </Divider>
+                </Grid>
+                {[...viewData.customFieldValues]
+                  .sort((a, b) => a.order - b.order)
+                  .map((v) => (
+                    <Grid item xs={6} key={v.keywordId}>
+                      <b>{v.keywordName}：</b> {v.value}
+                    </Grid>
+                  ))}
+              </>
             )}
             <Grid item xs={12}>
               <div className="handle-button">
@@ -351,6 +379,11 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
               ></textarea>
             </div>
           </Grid>
+          <CustomFieldsSection
+            fields={customFields}
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
           <Grid item xs={12}>
             <div className="handle-button">
               <FormButton itemName="登録" type="submit" />

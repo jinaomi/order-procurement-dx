@@ -15,6 +15,8 @@ namespace CaseMngmt.Repository.EntityKeywords
         Task<int> DeleteAsync(Guid id);
         Task<EntityKeyword?> GetByEntityAndKeywordIdAsync(string entityType, Guid entityId, Guid keywordId);
         Task<IEnumerable<FileResponse>> GetFileKeywordsByEntityAsync(string entityType, Guid entityId);
-        Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId);
+        Task<List<CaseKeywordBaseValue>> GetDocumentFilesAsync(Guid companyId, List<string> entityTypes, Guid? fileTypeId,
+            List<KeywordValue> keywordValues, List<KeywordSearchRangeValue> keywordDateValues, List<KeywordSearchRangeValue> keywordDecimalValues,
+            DateTime? dateFrom, DateTime? dateTo, Guid? customerId, Guid? supplierId);
     }
 }

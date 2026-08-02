@@ -3,6 +3,7 @@ using CaseMngmt.Models.GoodsReceipts;
 using CaseMngmt.Repository.GoodsReceipts;
 using CaseMngmt.Repository.Products;
 using CaseMngmt.Repository.PurchaseOrders;
+using CaseMngmt.Service.EntityKeywords;
 
 namespace CaseMngmt.Service.GoodsReceipts
 {
@@ -11,12 +12,17 @@ namespace CaseMngmt.Service.GoodsReceipts
         private readonly IGoodsReceiptRepository _repository;
         private readonly IPurchaseOrderRepository _purchaseOrderRepository;
         private readonly IProductRepository _productRepository;
+        private readonly IEntityKeywordService _entityKeywordService;
 
-        public GoodsReceiptService(IGoodsReceiptRepository repository, IPurchaseOrderRepository purchaseOrderRepository, IProductRepository productRepository)
+        private const string EntityType = "GoodsReceipt";
+
+        public GoodsReceiptService(IGoodsReceiptRepository repository, IPurchaseOrderRepository purchaseOrderRepository,
+            IProductRepository productRepository, IEntityKeywordService entityKeywordService)
         {
             _repository = repository;
             _purchaseOrderRepository = purchaseOrderRepository;
             _productRepository = productRepository;
+            _entityKeywordService = entityKeywordService;
         }
 
         public async Task<GoodsReceiptCreateResult> CreateAsync(GoodsReceiptRequest request, Guid currentUserId)
@@ -114,6 +120,7 @@ namespace CaseMngmt.Service.GoodsReceipts
                     return new GoodsReceiptCreateResult { StatusCode = 0, Message = "入荷登録に失敗しました。" };
                 }
 
+                await _entityKeywordService.ReplaceValuesAsync(EntityType, goodsReceipt.Id, request.CustomFieldValues, currentUserId);
                 return new GoodsReceiptCreateResult { StatusCode = result, GoodsReceiptId = goodsReceipt.Id, OverDeliveryWarnings = warnings };
             }
             catch (Exception)
@@ -149,7 +156,14 @@ namespace CaseMngmt.Service.GoodsReceipts
             try
             {
                 var entity = await _repository.GetByIdAsync(id, companyId);
-                return entity == null ? null : MapToViewModel(entity);
+                if (entity == null)
+                {
+                    return null;
+                }
+
+                var result = MapToViewModel(entity);
+                result.CustomFieldValues = await _entityKeywordService.GetByEntityAsync(EntityType, id);
+                return result;
             }
             catch (Exception)
             {

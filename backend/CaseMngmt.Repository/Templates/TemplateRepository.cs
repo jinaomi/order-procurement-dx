@@ -223,7 +223,7 @@ namespace CaseMngmt.Repository.Templates
             }
         }
 
-        public async Task<List<KeywordSearchModel>> GetDocumentSearchModelByIdAsync(Guid templateId)
+        public async Task<List<KeywordSearchModel>> GetDocumentSearchModelByIdAsync(List<Guid> templateIds)
         {
             try
             {
@@ -231,13 +231,14 @@ namespace CaseMngmt.Repository.Templates
                                           join keyword in _context.Keyword on tempTemplate.Id equals keyword.TemplateId
                                           join type in _context.Type on keyword.TypeId equals type.Id
                                           where !tempTemplate.Deleted
-                                            && tempTemplate.Id == templateId
+                                            && templateIds.Contains(tempTemplate.Id)
                                             && keyword.DocumentSearchable
                                             && keyword.IsShowOnTemplate
                                           select new KeywordSearchModel
                                           {
                                               KeywordName = keyword.Name,
                                               KeywordId = keyword.Id,
+                                              EntityType = tempTemplate.ModuleType,
                                               MaxLength = keyword.MaxLength,
                                               Order = keyword.Order,
                                               TypeId = keyword.Type.Id,
