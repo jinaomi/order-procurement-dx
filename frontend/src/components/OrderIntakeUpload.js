@@ -16,10 +16,50 @@ import {
   TableRow,
   IconButton,
   Chip,
+  Button,
 } from "@mui/material";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 const CONFIDENCE_THRESHOLD = 0.7;
+
+const normalizeForMatch = (s) => (s || "").replace(/[\s　]/g, "");
+
+const longestCommonSubstringLength = (a, b) => {
+  const dp = Array(a.length + 1)
+    .fill(null)
+    .map(() => Array(b.length + 1).fill(0));
+  let max = 0;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+        if (dp[i][j] > max) max = dp[i][j];
+      }
+    }
+  }
+  return max;
+};
+
+// Best-effort "did you mean" suggestion when the AI couldn't auto-match a raw name to
+// a master record. Not a substitute for AiOrderExtractionService's own matching — this
+// only surfaces a 1-click suggestion the user must still confirm, so a wrong guess here
+// is harmless (unlike an auto-applied match).
+const suggestCandidate = (rawName, candidates) => {
+  const normalizedRaw = normalizeForMatch(rawName);
+  if (!normalizedRaw) return null;
+  let best = null;
+  let bestScore = 0;
+  for (const candidate of candidates) {
+    const score = longestCommonSubstringLength(normalizedRaw, normalizeForMatch(candidate.name));
+    if (score > bestScore) {
+      bestScore = score;
+      best = candidate;
+    }
+  }
+  if (!best) return null;
+  const shorterLength = Math.min(normalizedRaw.length, normalizeForMatch(best.name).length);
+  return bestScore >= 3 && bestScore >= shorterLength * 0.5 ? best : null;
+};
 
 const emptyRow = () => ({
   key: Math.random().toString(36).slice(2),
@@ -316,6 +356,14 @@ const OrderIntakeUpload = () => {
     );
   }
 
+  const customerSuggestion =
+    !customerMatched && customerNameGuess ? suggestCandidate(customerNameGuess, customers) : null;
+
+  const handleCustomerSuggestionSelected = (customer) => {
+    setLatestData((v) => ({ ...v, customerId: customer.id }));
+    setCustomerMatched(true);
+  };
+
   return (
     <section className="order-intake-review">
       <Grid container columnSpacing={5} rowSpacing={3}>
@@ -353,7 +401,22 @@ const OrderIntakeUpload = () => {
             )}
             {!customerMatched && (
               <div style={{ color: "#b26a00" }}>
-                AIが取引先を自動特定できませんでした。手動で選択してください。
+                {customerSuggestion ? (
+                  <>
+                    AIが取引先を自動特定できませんでした。もしかして
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => handleCustomerSuggestionSelected(customerSuggestion)}
+                      style={{ padding: "0 4px", minWidth: 0, verticalAlign: "baseline" }}
+                    >
+                      「{customerSuggestion.name}」
+                    </Button>
+                    ではありませんか？
+                  </>
+                ) : (
+                  "AIが取引先を自動特定できませんでした。手動で選択してください。"
+                )}
               </div>
             )}
             <errors>{errors.customerId}</errors>
@@ -402,6 +465,10 @@ const OrderIntakeUpload = () => {
             <TableBody>
               {items.map((item) => {
                 const lowConfidence = item.confidence < CONFIDENCE_THRESHOLD;
+                const productSuggestion =
+                  !item.productId && item.productNameRaw
+                    ? suggestCandidate(item.productNameRaw, products)
+                    : null;
                 return (
                   <TableRow
                     key={item.key}
@@ -427,6 +494,26 @@ const OrderIntakeUpload = () => {
                             handleItemChange(item.key, "productNameRaw", e.target.value)
                           }
                         />
+                      )}
+                      {!item.productId && item.productNameRaw && (
+                        <div style={{ color: "#b26a00", fontSize: "0.8rem", marginTop: 4 }}>
+                          {productSuggestion ? (
+                            <>
+                              AIが商品を自動特定できませんでした。もしかして
+                              <Button
+                                size="small"
+                                variant="text"
+                                onClick={() => handleProductSelected(item.key, productSuggestion)}
+                                style={{ padding: "0 4px", minWidth: 0, verticalAlign: "baseline" }}
+                              >
+                                「{productSuggestion.name}」
+                              </Button>
+                              ではありませんか？
+                            </>
+                          ) : (
+                            "AIが商品を自動特定できませんでした。手動で選択してください。"
+                          )}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
