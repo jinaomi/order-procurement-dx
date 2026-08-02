@@ -235,6 +235,59 @@ namespace CaseMngmt.Server.Controllers
             }
         }
 
+        [HttpPost, Route("{id}/issue")]
+        public async Task<IActionResult> Issue(Guid id, PurchaseOrderIssueRequest request)
+        {
+            if (id == Guid.Empty || !ModelState.IsValid || request == null)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var currentCompanyId = User?.FindFirst("CompanyId")?.Value;
+                var currentUserId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(currentCompanyId) || string.IsNullOrEmpty(currentUserId))
+                {
+                    return BadRequest();
+                }
+
+                var result = await _service.IssueAsync(id, Guid.Parse(currentCompanyId), request.Channel, request.Note, Guid.Parse(currentUserId));
+                return result != null ? Ok(result) : BadRequest();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(PurchaseOrderController), true, e);
+                return BadRequest();
+            }
+        }
+
+        [HttpGet, Route("{id}/issuances")]
+        public async Task<IActionResult> GetIssuances(Guid id)
+        {
+            if (id == Guid.Empty)
+            {
+                return BadRequest();
+            }
+
+            try
+            {
+                var currentCompanyId = User?.FindFirst("CompanyId")?.Value;
+                if (string.IsNullOrEmpty(currentCompanyId))
+                {
+                    return BadRequest();
+                }
+
+                var result = await _service.GetIssuancesAsync(id, Guid.Parse(currentCompanyId));
+                return Ok(result);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message, nameof(PurchaseOrderController), true, e);
+                return BadRequest();
+            }
+        }
+
         [HttpDelete, Route("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {

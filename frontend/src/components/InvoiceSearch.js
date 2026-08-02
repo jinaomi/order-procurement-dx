@@ -30,6 +30,13 @@ const statusColor = {
   Overdue: "error",
 };
 
+const statusLabel = {
+  Draft: "下書き",
+  Issued: "発行済み",
+  Paid: "入金済み",
+  Overdue: "期限超過",
+};
+
 const statusOptions = [
   { id: "Issued", label: "発行済み" },
   { id: "Paid", label: "入金済み" },
@@ -187,7 +194,7 @@ const InvoiceSearch = () => {
                       {item.totalAmount != null ? item.totalAmount.toLocaleString() : ""}
                     </TableCell>
                     <TableCell style={{ textAlign: "center" }}>
-                      <Chip label={item.status} color={statusColor[item.status] || "default"} size="small" />
+                      <Chip label={statusLabel[item.status] || item.status} color={statusColor[item.status] || "default"} size="small" />
                     </TableCell>
                     <TableCell style={{ textAlign: "center" }}>
                       <Button

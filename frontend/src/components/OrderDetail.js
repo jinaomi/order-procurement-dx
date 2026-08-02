@@ -24,6 +24,19 @@ const statusColor = {
   Cancelled: "error",
 };
 
+const statusLabel = {
+  Draft: "下書き",
+  Confirmed: "確定",
+  RiskFlagged: "リスクあり",
+  Invoiced: "請求済み",
+  Cancelled: "キャンセル",
+};
+
+const invoiceStatusLabel = {
+  Issued: "発行済み",
+  Paid: "入金済み",
+};
+
 const riskColor = {
   Sufficient: "success",
   Warning: "warning",
@@ -375,7 +388,7 @@ const OrderDetail = ({ orderId }) => {
               <b>受注番号：</b> {orderInfo.orderNumber} &nbsp;&nbsp;
               <b>ステータス：</b>{" "}
               <Chip
-                label={orderInfo.status}
+                label={statusLabel[orderInfo.status] || orderInfo.status}
                 color={statusColor[orderInfo.status] || "default"}
                 size="small"
               />
@@ -383,7 +396,7 @@ const OrderDetail = ({ orderId }) => {
                 {invoiceInfo ? (
                   <>
                     <span style={{ marginRight: 10 }}>
-                      請求書番号: <b>{invoiceInfo.invoiceNumber}</b>（{invoiceInfo.status}）
+                      請求書番号: <b>{invoiceInfo.invoiceNumber}</b>（{invoiceStatusLabel[invoiceInfo.status] || invoiceInfo.status}）
                     </span>
                     <FormButton
                       itemName="請求書PDFダウンロード"

@@ -1,9 +1,17 @@
 using CaseMngmt.Models;
+using CaseMngmt.Models.EntityKeywords;
+using CaseMngmt.Models.FileUploads;
 using CaseMngmt.Models.PurchaseOrders;
+using CaseMngmt.Repository.Companies;
 using CaseMngmt.Repository.Products;
 using CaseMngmt.Repository.PurchaseInvoices;
 using CaseMngmt.Repository.PurchaseOrders;
+using CaseMngmt.Repository.Types;
 using CaseMngmt.Service.EntityKeywords;
+using CaseMngmt.Service.FileUploads;
+using CaseMngmt.Service.Invoices;
+using CaseMngmt.Service.Templates;
+using Microsoft.Extensions.Configuration;
 
 namespace CaseMngmt.Service.PurchaseOrders
 {
@@ -13,6 +21,13 @@ namespace CaseMngmt.Service.PurchaseOrders
         private readonly IProductRepository _productRepository;
         private readonly IPurchaseInvoiceRepository _purchaseInvoiceRepository;
         private readonly IEntityKeywordService _entityKeywordService;
+        private readonly IPurchaseOrderIssuanceRepository _issuanceRepository;
+        private readonly ICompanyRepository _companyRepository;
+        private readonly IPurchaseOrderPdfService _pdfService;
+        private readonly ITypeRepository _typeRepository;
+        private readonly ITemplateService _templateService;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IConfiguration _configuration;
 
         private const string EntityType = "PurchaseOrder";
 
@@ -20,12 +35,26 @@ namespace CaseMngmt.Service.PurchaseOrders
             IPurchaseOrderRepository repository,
             IProductRepository productRepository,
             IPurchaseInvoiceRepository purchaseInvoiceRepository,
-            IEntityKeywordService entityKeywordService)
+            IEntityKeywordService entityKeywordService,
+            IPurchaseOrderIssuanceRepository issuanceRepository,
+            ICompanyRepository companyRepository,
+            IPurchaseOrderPdfService pdfService,
+            ITypeRepository typeRepository,
+            ITemplateService templateService,
+            IFileUploadService fileUploadService,
+            IConfiguration configuration)
         {
             _repository = repository;
             _productRepository = productRepository;
             _purchaseInvoiceRepository = purchaseInvoiceRepository;
             _entityKeywordService = entityKeywordService;
+            _issuanceRepository = issuanceRepository;
+            _companyRepository = companyRepository;
+            _pdfService = pdfService;
+            _typeRepository = typeRepository;
+            _templateService = templateService;
+            _fileUploadService = fileUploadService;
+            _configuration = configuration;
         }
 
         public async Task<Guid?> CreatePurchaseOrderAsync(PurchaseOrderRequest request, Guid currentUserId)
@@ -299,6 +328,134 @@ namespace CaseMngmt.Service.PurchaseOrders
             {
                 return null;
             }
+        }
+
+        // Generates a fresh 発注書 PDF snapshot, persists it via the same EntityKeyword
+        // mechanism used for Invoice/PurchaseInvoice documents (so it also surfaces in the
+        // unified 書類管理 search and the PurchaseOrder's own AttachedFilesList), and logs a
+        // PurchaseOrderIssuance row recording who issued it, when, and via which channel.
+        // A fresh PDF is generated every time (rather than reusing one file) so evidence of
+        // what was actually sent survives later edits to the PurchaseOrder.
+        public async Task<Guid?> IssueAsync(Guid purchaseOrderId, Guid companyId, string channel, string? note, Guid currentUserId)
+        {
+            try
+            {
+                var purchaseOrder = await _repository.GetByIdAsync(purchaseOrderId, companyId);
+                if (purchaseOrder?.Supplier == null)
+                {
+                    return null;
+                }
+
+                var company = await _companyRepository.GetByIdAsync(companyId);
+                if (company == null)
+                {
+                    return null;
+                }
+
+                var fileType = await _typeRepository.GetByTypeNameAsync("発注書");
+                if (fileType == null)
+                {
+                    return null;
+                }
+
+                var template = await _templateService.EnsureModuleTemplateAsync(companyId, EntityType);
+                if (template == null)
+                {
+                    return null;
+                }
+
+                var pdfBytes = _pdfService.GeneratePdf(purchaseOrder, purchaseOrder.Supplier, company);
+                var fileName = $"{purchaseOrder.PurchaseOrderNumber}_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+                var fileUpload = new EntityFileUpload
+                {
+                    EntityType = EntityType,
+                    EntityId = purchaseOrder.Id,
+                    FileTypeId = fileType.Id,
+                    FileName = fileName,
+                    FileToUpload = new InMemoryFormFile(pdfBytes, fileName, "application/pdf")
+                };
+
+                var (fileSetting, awsSetting) = BuildFileSettings();
+                var uploadResult = await _fileUploadService.UploadEntityFileAsync(fileUpload, fileSetting, awsSetting);
+                if (uploadResult == null)
+                {
+                    return null;
+                }
+
+                await _entityKeywordService.AddFileToEntityKeywordAsync(
+                    EntityType, purchaseOrder.Id, fileType.Id, uploadResult, template.Id, currentUserId);
+
+                var issuance = new PurchaseOrderIssuance
+                {
+                    Name = fileName,
+                    PurchaseOrderId = purchaseOrder.Id,
+                    IssuedDate = DateTime.UtcNow,
+                    Channel = channel,
+                    Note = note,
+                    FileName = fileName,
+                    IssuedBy = currentUserId,
+                    CreatedBy = currentUserId,
+                    UpdatedBy = currentUserId
+                };
+
+                var result = await _issuanceRepository.AddAsync(issuance);
+                return result > 0 ? issuance.Id : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<PurchaseOrderIssuanceViewModel>> GetIssuancesAsync(Guid purchaseOrderId, Guid companyId)
+        {
+            try
+            {
+                var purchaseOrder = await _repository.GetByIdAsync(purchaseOrderId, companyId);
+                if (purchaseOrder == null)
+                {
+                    return new List<PurchaseOrderIssuanceViewModel>();
+                }
+
+                var issuances = await _issuanceRepository.GetByPurchaseOrderIdAsync(purchaseOrderId);
+                return issuances.Select(i => new PurchaseOrderIssuanceViewModel
+                {
+                    Id = i.Id,
+                    PurchaseOrderId = i.PurchaseOrderId,
+                    IssuedDate = i.IssuedDate,
+                    Channel = i.Channel,
+                    Note = i.Note,
+                    FileName = i.FileName,
+                    IssuedBy = i.IssuedBy
+                }).ToList();
+            }
+            catch (Exception)
+            {
+                return new List<PurchaseOrderIssuanceViewModel>();
+            }
+        }
+
+        private (FileUploadSetting, AWSSetting?) BuildFileSettings()
+        {
+            var fileSetting = new FileUploadSetting
+            {
+                AcceptTypes = _configuration["FileUploadSettings:acceptTypes"],
+                InvalidFileExtensions = _configuration["FileUploadSettings:invalidFileExtensions"],
+                UploadFolder = _configuration["FileUploadSettings:uploadFolder"],
+                ValidFileTypes = _configuration["FileUploadSettings:validFileTypes"],
+            };
+            AWSSetting? awsSetting = null;
+            if (!string.IsNullOrEmpty(_configuration["AWS:S3Bucket"]))
+            {
+                awsSetting = new AWSSetting
+                {
+                    S3Bucket = _configuration["AWS:S3Bucket"],
+                    ACCESS_KEY = _configuration["AWS:ACCESS_KEY"],
+                    SECRET_KEY = _configuration["AWS:SECRET_KEY"],
+                    UploadFolder = _configuration["AWS:UploadFolder"]
+                };
+            }
+            return (fileSetting, awsSetting);
         }
 
         private static PurchaseOrderViewModel MapToViewModel(PurchaseOrder purchaseOrder)

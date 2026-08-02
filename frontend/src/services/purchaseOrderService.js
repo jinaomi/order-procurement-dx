@@ -55,6 +55,25 @@ const extract = (axiosPrivate, file) => {
   });
 };
 
-const purchaseOrderService = { getAll, getById, create, update, updateStatus, deleteById, getReconciliation, extract };
+const issue = (axiosPrivate, id, data) => {
+  return axiosPrivate.post(`/api/purchaseOrder/${id}/issue`, data);
+};
+
+const getIssuances = (axiosPrivate, id) => {
+  return axiosPrivate.get(`/api/purchaseOrder/${id}/issuances`);
+};
+
+const purchaseOrderService = {
+  getAll,
+  getById,
+  create,
+  update,
+  updateStatus,
+  deleteById,
+  getReconciliation,
+  extract,
+  issue,
+  getIssuances,
+};
 
 export default purchaseOrderService;

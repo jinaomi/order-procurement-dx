@@ -12,5 +12,7 @@ namespace CaseMngmt.Service.PurchaseOrders
         Task<int> UpdateStatusAsync(Guid id, Guid companyId, string status, Guid currentUserId);
         Task<int> DeleteAsync(Guid id, Guid companyId, Guid currentUserId);
         Task<PurchaseOrderReconciliationViewModel?> GetReconciliationAsync(Guid id, Guid companyId);
+        Task<Guid?> IssueAsync(Guid purchaseOrderId, Guid companyId, string channel, string? note, Guid currentUserId);
+        Task<List<PurchaseOrderIssuanceViewModel>> GetIssuancesAsync(Guid purchaseOrderId, Guid companyId);
     }
 }

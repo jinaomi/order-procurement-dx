@@ -165,6 +165,12 @@ namespace CaseMngmt.Models.Database
             modelBuilder.Entity<GoodsReceiptItem>()
                 .Property(e => e.ReceivedQuantity).HasColumnType("decimal(18,2)");
 
+            modelBuilder.Entity<PurchaseOrderIssuance>()
+                .HasOne(e => e.PurchaseOrder)
+                .WithMany()
+                .HasForeignKey(e => e.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<PurchaseInvoice>()
                 .HasOne<Company>()
                 .WithMany()
@@ -301,6 +307,7 @@ namespace CaseMngmt.Models.Database
         public DbSet<Supplier> Supplier { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrder { get; set; }
         public DbSet<PurchaseOrderItem> PurchaseOrderItem { get; set; }
+        public DbSet<PurchaseOrderIssuance> PurchaseOrderIssuance { get; set; }
         public DbSet<GoodsReceipt> GoodsReceipt { get; set; }
         public DbSet<GoodsReceiptItem> GoodsReceiptItem { get; set; }
         public DbSet<PurchaseInvoice> PurchaseInvoice { get; set; }

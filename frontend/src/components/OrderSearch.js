@@ -34,6 +34,14 @@ const statusColor = {
   Cancelled: "error",
 };
 
+const statusLabel = {
+  Draft: "下書き",
+  Confirmed: "確定",
+  RiskFlagged: "リスクあり",
+  Invoiced: "請求済み",
+  Cancelled: "キャンセル",
+};
+
 const riskColor = {
   Sufficient: "success",
   Warning: "warning",
@@ -200,7 +208,7 @@ const OrderSearch = () => {
                       {item.totalAmount != null ? item.totalAmount.toLocaleString() : ""}
                     </TableCell>
                     <TableCell style={{ textAlign: "center" }}>
-                      <Chip label={item.status} color={statusColor[item.status] || "default"} size="small" />
+                      <Chip label={statusLabel[item.status] || item.status} color={statusColor[item.status] || "default"} size="small" />
                     </TableCell>
                     <TableCell style={{ textAlign: "center" }}>
                       {item.riskLevel ? (

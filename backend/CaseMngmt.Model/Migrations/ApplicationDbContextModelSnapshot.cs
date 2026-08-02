@@ -833,6 +833,62 @@ namespace CaseMngmt.Models.Migrations
                     b.ToTable("GoodsReceipt");
                 });
 
+            modelBuilder.Entity("CaseMngmt.Models.PurchaseOrders.PurchaseOrderIssuance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("nvarchar(260)");
+
+                    b.Property<Guid>("IssuedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("IssuedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchaseOrderId");
+
+                    b.ToTable("PurchaseOrderIssuance");
+                });
+
             modelBuilder.Entity("CaseMngmt.Models.GoodsReceipts.GoodsReceiptItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1620,6 +1676,17 @@ namespace CaseMngmt.Models.Migrations
                     b.Navigation("Supplier");
 
                     b.Navigation("GoodsReceiptItems");
+                });
+
+            modelBuilder.Entity("CaseMngmt.Models.PurchaseOrders.PurchaseOrderIssuance", b =>
+                {
+                    b.HasOne("CaseMngmt.Models.PurchaseOrders.PurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
                 });
 
             modelBuilder.Entity("CaseMngmt.Models.GoodsReceipts.GoodsReceiptItem", b =>

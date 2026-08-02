@@ -34,6 +34,14 @@ const statusColor = {
   Cancelled: "error",
 };
 
+const statusLabel = {
+  Draft: "下書き",
+  Confirmed: "確定",
+  PartiallyReceived: "一部入荷済み",
+  Received: "入荷済み",
+  Cancelled: "キャンセル",
+};
+
 const emptyRow = () => ({
   key: Math.random().toString(36).slice(2),
   productId: null,
@@ -60,6 +68,10 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
   const [reconciliation, setReconciliation] = useState(null);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [issuances, setIssuances] = useState([]);
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [issueChannel, setIssueChannel] = useState("FAX");
+  const [issueNote, setIssueNote] = useState("");
   const [errors, setErrors] = useState({});
   const [showAttachDialog, setShowAttachDialog] = useState(false);
   const [optionFileType, setOptionFileType] = useState([]);
@@ -144,6 +156,7 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
         }))
       );
       await getReconciliation(data.id);
+      await getIssuances(data.id);
     } catch (error) {
       setSnackbar({
         isOpen: true,
@@ -178,6 +191,41 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
     } catch (error) {
       setReconciliation(null);
     }
+  };
+
+  const getIssuances = async (currentPurchaseOrderId) => {
+    try {
+      const response = await purchaseOrderService.getIssuances(axiosPrivate, currentPurchaseOrderId);
+      setIssuances(response.data || []);
+    } catch (error) {
+      setIssuances([]);
+    }
+  };
+
+  const handleIssue = async () => {
+    setLoading(true);
+    try {
+      await purchaseOrderService.issue(axiosPrivate, dataId, {
+        channel: issueChannel,
+        note: issueNote,
+      });
+      setShowIssueForm(false);
+      setIssueNote("");
+      await getIssuances(dataId);
+      setAttachRefreshToken((v) => v + 1);
+      setSnackbar({
+        isOpen: true,
+        status: "success",
+        message: "発注書を発行しました。下記の添付ファイルからダウンロードできます。",
+      });
+    } catch (error) {
+      setSnackbar({
+        isOpen: true,
+        status: "error",
+        message: "エラーが発生しました。再試行するか、サポートにお問い合わせください。",
+      });
+    }
+    setLoading(false);
   };
 
   const handleOpenInvoice = (invoiceId) => {
@@ -296,6 +344,8 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
     setDataId();
     setPurchaseOrderInfo(null);
     setReconciliation(null);
+    setIssuances([]);
+    setShowIssueForm(false);
     setLatestData({
       supplierId: null,
       orderDate: new Date().toISOString().slice(0, 10),
@@ -320,7 +370,7 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
               <b>発注番号：</b> {purchaseOrderInfo.purchaseOrderNumber} &nbsp;&nbsp;
               <b>ステータス：</b>{" "}
               <Chip
-                label={purchaseOrderInfo.status}
+                label={statusLabel[purchaseOrderInfo.status] || purchaseOrderInfo.status}
                 color={statusColor[purchaseOrderInfo.status] || "default"}
                 size="small"
               />
@@ -410,6 +460,80 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
                       ))}
                     </TableBody>
                   </Table>
+                </>
+              )}
+            </Grid>
+          )}
+          {dataId && (
+            <Grid item xs={12}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <b>発注書発行・送付履歴：</b>
+                <FormButton
+                  itemName="発注書を発行する"
+                  onClick={() => setShowIssueForm((v) => !v)}
+                  buttonType="cancel"
+                />
+              </div>
+              {showIssueForm && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "flex-end",
+                    flexWrap: "wrap",
+                    marginTop: 10,
+                  }}
+                >
+                  <div className="section-item">
+                    <label className="section-label">送付方法</label>
+                    <select
+                      className="section-input"
+                      value={issueChannel}
+                      onChange={(e) => setIssueChannel(e.target.value)}
+                    >
+                      <option value="FAX">FAX</option>
+                      <option value="Email">Email</option>
+                      <option value="郵送">郵送</option>
+                      <option value="その他">その他</option>
+                    </select>
+                  </div>
+                  <div className="section-item" style={{ flex: 1, minWidth: 200 }}>
+                    <label className="section-label">備考</label>
+                    <input
+                      type="text"
+                      className="section-input"
+                      value={issueNote}
+                      onChange={(e) => setIssueNote(e.target.value)}
+                    />
+                  </div>
+                  <FormButton itemName="発行して記録する" onClick={handleIssue} />
+                </div>
+              )}
+              {issuances.length > 0 && (
+                <>
+                  <Table size="small" style={{ marginTop: 10 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>発行日時</TableCell>
+                        <TableCell>送付方法</TableCell>
+                        <TableCell>備考</TableCell>
+                        <TableCell>ファイル名</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {issuances.map((iss) => (
+                        <TableRow key={iss.id}>
+                          <TableCell>{new Date(iss.issuedDate).toLocaleString("ja-JP")}</TableCell>
+                          <TableCell>{iss.channel}</TableCell>
+                          <TableCell>{iss.note}</TableCell>
+                          <TableCell>{iss.fileName}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 5 }}>
+                    PDFは下記の「添付ファイル」からダウンロードできます。
+                  </p>
                 </>
               )}
             </Grid>

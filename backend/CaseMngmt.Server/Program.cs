@@ -171,6 +171,8 @@ builder.Services.AddTransient<ISupplierRepository, SupplierRepository>();
 
 builder.Services.AddTransient<IPurchaseOrderService, PurchaseOrderService>();
 builder.Services.AddTransient<IPurchaseOrderRepository, PurchaseOrderRepository>();
+builder.Services.AddTransient<IPurchaseOrderIssuanceRepository, PurchaseOrderIssuanceRepository>();
+builder.Services.AddTransient<IPurchaseOrderPdfService, PurchaseOrderPdfService>();
 
 builder.Services.AddTransient<IGoodsReceiptService, GoodsReceiptService>();
 builder.Services.AddTransient<IGoodsReceiptRepository, GoodsReceiptRepository>();
