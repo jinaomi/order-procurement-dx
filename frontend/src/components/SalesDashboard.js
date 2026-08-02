@@ -45,12 +45,15 @@ const statusChartColor = {
 };
 
 const StatTile = ({ label, value, color }) => (
-  <Card>
+  <Card sx={{ height: "100%" }}>
     <CardContent>
       <Typography variant="body2" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant="h4" style={{ color: color || "#11596F", fontWeight: "bold" }}>
+      <Typography
+        variant="h4"
+        sx={{ color: color || "#11596F", fontWeight: "bold", fontSize: { xs: "1.6rem" } }}
+      >
         {value}
       </Typography>
     </CardContent>
@@ -202,28 +205,30 @@ const SalesDashboard = () => {
           <AiCommentCard />
         </Grid>
 
-        <Grid item xs={12} sm={3}>
-          <StatTile label="受注件数" value={summary.totalOrders} />
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <StatTile
-            label="受注金額合計"
-            value={`¥${summary.totalOrderAmount.toLocaleString()}`}
-          />
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <StatTile
-            label="請求済み金額"
-            value={`¥${summary.totalInvoicedAmount.toLocaleString()}`}
-            color="#0B78D1"
-          />
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <StatTile
-            label="リスクあり受注件数"
-            value={summary.riskFlaggedCount}
-            color={summary.riskFlaggedCount > 0 ? "#c62828" : "#11596F"}
-          />
+        <Grid item xs={12}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 24,
+            }}
+          >
+            <StatTile label="受注件数" value={summary.totalOrders} />
+            <StatTile
+              label="受注金額合計"
+              value={`¥${summary.totalOrderAmount.toLocaleString()}`}
+            />
+            <StatTile
+              label="請求済み金額"
+              value={`¥${summary.totalInvoicedAmount.toLocaleString()}`}
+              color="#0B78D1"
+            />
+            <StatTile
+              label="リスクあり受注件数"
+              value={summary.riskFlaggedCount}
+              color={summary.riskFlaggedCount > 0 ? "#c62828" : "#11596F"}
+            />
+          </div>
         </Grid>
 
         <Grid item xs={12}>
@@ -258,6 +263,7 @@ const SalesDashboard = () => {
                         paddingAngle: 2,
                       },
                     ]}
+                    slotProps={{ legend: { hidden: true } }}
                   />
                 </Grid>
               </Grid>
@@ -283,26 +289,28 @@ const SalesDashboard = () => {
                   },
                 ]}
               />
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>年月</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>受注件数</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>金額</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {summary.monthlySales.map((m) => (
-                    <TableRow key={m.month}>
-                      <TableCell>{m.month}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>{m.orderCount}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>
-                        ¥{m.totalAmount.toLocaleString()}
-                      </TableCell>
+              <div style={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>年月</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>受注件数</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>金額</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {summary.monthlySales.map((m) => (
+                      <TableRow key={m.month}>
+                        <TableCell>{m.month}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>{m.orderCount}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>
+                          ¥{m.totalAmount.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </Grid>
@@ -316,7 +324,13 @@ const SalesDashboard = () => {
               <BarChart
                 height={260}
                 layout="horizontal"
-                yAxis={[{ scaleType: "band", data: summary.topCustomers.map((c) => c.customerName) }]}
+                yAxis={[
+                  {
+                    scaleType: "band",
+                    data: summary.topCustomers.map((c) => c.customerName),
+                    tickLabelStyle: { fontSize: 11 },
+                  },
+                ]}
                 series={[
                   {
                     data: summary.topCustomers.map((c) => c.totalAmount),
@@ -325,28 +339,30 @@ const SalesDashboard = () => {
                     valueFormatter: (v) => `¥${v.toLocaleString()}`,
                   },
                 ]}
-                margin={{ left: 110 }}
+                margin={{ left: 170 }}
               />
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>取引先</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>受注件数</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>金額</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {summary.topCustomers.map((c) => (
-                    <TableRow key={c.customerName}>
-                      <TableCell>{c.customerName}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>{c.orderCount}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>
-                        ¥{c.totalAmount.toLocaleString()}
-                      </TableCell>
+              <div style={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>取引先</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>受注件数</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>金額</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {summary.topCustomers.map((c) => (
+                      <TableRow key={c.customerName}>
+                        <TableCell style={{ whiteSpace: "nowrap" }}>{c.customerName}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>{c.orderCount}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>
+                          ¥{c.totalAmount.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </Grid>
@@ -369,26 +385,28 @@ const SalesDashboard = () => {
                   },
                 ]}
               />
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>商品名</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>数量</TableCell>
-                    <TableCell style={{ textAlign: "right" }}>金額</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {summary.topProducts.map((p) => (
-                    <TableRow key={p.productName}>
-                      <TableCell>{p.productName}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>{p.totalQuantity}</TableCell>
-                      <TableCell style={{ textAlign: "right" }}>
-                        ¥{p.totalAmount.toLocaleString()}
-                      </TableCell>
+              <div style={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>商品名</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>数量</TableCell>
+                      <TableCell style={{ textAlign: "right" }}>金額</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {summary.topProducts.map((p) => (
+                      <TableRow key={p.productName}>
+                        <TableCell style={{ whiteSpace: "nowrap" }}>{p.productName}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>{p.totalQuantity}</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>
+                          ¥{p.totalAmount.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </Grid>
