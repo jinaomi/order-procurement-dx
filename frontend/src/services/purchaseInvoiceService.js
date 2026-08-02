@@ -2,6 +2,7 @@ const getAll = (
   axiosPrivate,
   supplierId,
   status,
+  purchaseInvoiceNumber,
   issueDateFrom,
   issueDateTo,
   pageSize = 25,
@@ -13,6 +14,9 @@ const getAll = (
   }
   if (status) {
     url += `&status=${status}`;
+  }
+  if (purchaseInvoiceNumber) {
+    url += `&purchaseInvoiceNumber=${encodeURIComponent(purchaseInvoiceNumber)}`;
   }
   if (issueDateFrom) {
     url += `&issueDateFrom=${issueDateFrom}`;

@@ -28,7 +28,7 @@ namespace CaseMngmt.Repository.PurchaseInvoices
             }
         }
 
-        public async Task<PagedResult<PurchaseInvoice>?> GetAllAsync(Guid companyId, Guid? supplierId, string? status, DateTime? issueDateFrom, DateTime? issueDateTo, int pageSize, int pageNumber)
+        public async Task<PagedResult<PurchaseInvoice>?> GetAllAsync(Guid companyId, Guid? supplierId, string? status, string? purchaseInvoiceNumber, DateTime? issueDateFrom, DateTime? issueDateTo, int pageSize, int pageNumber)
         {
             try
             {
@@ -45,6 +45,11 @@ namespace CaseMngmt.Repository.PurchaseInvoices
                 if (!string.IsNullOrEmpty(status))
                 {
                     queryablePurchaseInvoice = queryablePurchaseInvoice.Where(x => x.Status == status);
+                }
+
+                if (!string.IsNullOrEmpty(purchaseInvoiceNumber))
+                {
+                    queryablePurchaseInvoice = queryablePurchaseInvoice.Where(x => x.PurchaseInvoiceNumber.Contains(purchaseInvoiceNumber));
                 }
 
                 if (issueDateFrom.HasValue)

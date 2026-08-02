@@ -89,11 +89,11 @@ namespace CaseMngmt.Service.PurchaseInvoices
             return new DateTime(targetMonth.Year, targetMonth.Month, day);
         }
 
-        public async Task<PagedResult<PurchaseInvoiceViewModel>?> GetAllAsync(Guid companyId, Guid? supplierId, string? status, DateTime? issueDateFrom, DateTime? issueDateTo, int pageSize, int pageNumber)
+        public async Task<PagedResult<PurchaseInvoiceViewModel>?> GetAllAsync(Guid companyId, Guid? supplierId, string? status, string? purchaseInvoiceNumber, DateTime? issueDateFrom, DateTime? issueDateTo, int pageSize, int pageNumber)
         {
             try
             {
-                var purchaseInvoicesFromRepository = await _repository.GetAllAsync(companyId, supplierId, status, issueDateFrom, issueDateTo, pageSize, pageNumber);
+                var purchaseInvoicesFromRepository = await _repository.GetAllAsync(companyId, supplierId, status, purchaseInvoiceNumber, issueDateFrom, issueDateTo, pageSize, pageNumber);
                 if (purchaseInvoicesFromRepository == null)
                 {
                     return null;

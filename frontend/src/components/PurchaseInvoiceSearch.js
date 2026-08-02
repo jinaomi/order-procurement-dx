@@ -43,6 +43,7 @@ const PurchaseInvoiceSearch = () => {
   const [searchCriteria, setSearchCriteria] = useState({
     supplierId: null,
     status: null,
+    purchaseInvoiceNumber: "",
     issueDateFrom: "",
     issueDateTo: "",
   });
@@ -70,6 +71,7 @@ const PurchaseInvoiceSearch = () => {
         axiosPrivate,
         searchCriteria.supplierId,
         searchCriteria.status,
+        searchCriteria.purchaseInvoiceNumber || null,
         searchCriteria.issueDateFrom || null,
         searchCriteria.issueDateTo || null,
         commonState.paginationState.pageSize,
@@ -219,6 +221,20 @@ const PurchaseInvoiceSearch = () => {
                   options={statusOptions}
                   optionSelected={(e, value) =>
                     setSearchCriteria((v) => ({ ...v, status: value ? value.id : null }))
+                  }
+                />
+              </div>
+            </Grid>
+            <Grid item xs={12} sm={4} md={4}>
+              <div className="section-item">
+                <label className="section-label">仕入請求書番号</label>
+                <input
+                  type="text"
+                  className="section-input"
+                  placeholder="PINV-2026-00017"
+                  value={searchCriteria.purchaseInvoiceNumber}
+                  onChange={(e) =>
+                    setSearchCriteria((v) => ({ ...v, purchaseInvoiceNumber: e.target.value }))
                   }
                 />
               </div>

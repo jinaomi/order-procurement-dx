@@ -3,8 +3,19 @@ import LoadingSpinner from "./until/LoadingSpinner";
 import FormSelection from "./until/FormSelection";
 import CustomFieldsSection from "./until/CustomFieldsSection";
 import DialogHandle from "./until/DialogHandle";
+import ContentDialog from "./until/ContentDialog";
 import AttachedFilesList from "./until/AttachedFilesList";
-import { Grid, Table, TableBody, TableCell, TableHead, TableRow, IconButton } from "@mui/material";
+import PurchaseInvoiceDetail from "./PurchaseInvoiceDetail";
+import {
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  IconButton,
+  Button,
+} from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
@@ -47,6 +58,8 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
   const [dataId, setDataId] = useState();
   const [purchaseOrderInfo, setPurchaseOrderInfo] = useState(null);
   const [reconciliation, setReconciliation] = useState(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
   const [errors, setErrors] = useState({});
   const [showAttachDialog, setShowAttachDialog] = useState(false);
   const [optionFileType, setOptionFileType] = useState([]);
@@ -164,6 +177,18 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
       setReconciliation(response.data);
     } catch (error) {
       setReconciliation(null);
+    }
+  };
+
+  const handleOpenInvoice = (invoiceId) => {
+    setSelectedInvoiceId(invoiceId);
+    setShowInvoiceDialog(true);
+  };
+
+  const closeInvoiceDialog = () => {
+    setShowInvoiceDialog(false);
+    if (dataId) {
+      getReconciliation(dataId);
     }
   };
 
@@ -335,10 +360,57 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
                 />
               </div>
               {reconciliation.hasAmountMismatch && (
-                <Alert severity="warning" style={{ marginTop: 10 }}>
-                  発注金額（{reconciliation.orderedTotalAmount.toLocaleString()}）と請求金額の合計（
-                  {reconciliation.invoicedTotalAmount.toLocaleString()}）が一致していません。ご確認ください。
-                </Alert>
+                <>
+                  <Alert severity="warning" style={{ marginTop: 10 }}>
+                    発注金額（¥{reconciliation.orderedTotalAmount.toLocaleString()}）に対し、請求金額の合計は¥
+                    {reconciliation.invoicedTotalAmount.toLocaleString()}で、¥
+                    {Math.abs(
+                      reconciliation.invoicedTotalAmount - reconciliation.orderedTotalAmount
+                    ).toLocaleString()}
+                    {reconciliation.invoicedTotalAmount > reconciliation.orderedTotalAmount
+                      ? "超過"
+                      : "不足"}
+                    しています。下記の請求書をご確認ください。
+                  </Alert>
+                  <Table size="small" style={{ marginTop: 10 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>請求書番号</TableCell>
+                        <TableCell style={{ textAlign: "right" }}>金額</TableCell>
+                        <TableCell>ステータス</TableCell>
+                        <TableCell>操作</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {reconciliation.invoices.map((inv) => (
+                        <TableRow key={inv.id}>
+                          <TableCell>{inv.purchaseInvoiceNumber}</TableCell>
+                          <TableCell style={{ textAlign: "right" }}>
+                            ¥{inv.totalAmount.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={inv.status === "Paid" ? "支払済み" : "未払い"}
+                              color={inv.status === "Paid" ? "success" : "default"}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              startIcon={<Icons.Visibility />}
+                              onClick={() => handleOpenInvoice(inv.id)}
+                            >
+                              詳細
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </Grid>
           )}
@@ -514,6 +586,13 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
         entityId={dataId}
         fixedFileTypeId={attachFileTypeId}
       />
+      <ContentDialog
+        open={showInvoiceDialog}
+        closeDialog={closeInvoiceDialog}
+        title="仕入請求書詳細"
+      >
+        <PurchaseInvoiceDetail purchaseInvoiceId={selectedInvoiceId}></PurchaseInvoiceDetail>
+      </ContentDialog>
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />
     </section>
