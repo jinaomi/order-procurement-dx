@@ -30,15 +30,31 @@ Tài liệu bổ sung:
 
 **Code đã push lên GitHub** (`origin/main`, repo `order-procurement-dx`, commit `ac28bf9`, 2026-07-31) — gồm toàn bộ dynamic-field engine + các fix layout + đổi UI trên.
 
-Backend (`localhost:5000`, Development) + frontend dev server (`localhost:3000`) **đang chạy nền** cho user browse demo cục bộ (không phải ngrok public) — chưa dừng, dừng khi user xác nhận xong việc. Secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
+Backend **đang chạy nền** ở cổng **5178** (production-style: `--no-launch-profile`, serve cả API lẫn frontend build tĩnh từ `wwwroot`) + có **ngrok tunnel public** đang mở (xem mục "Demo đã publish qua ngrok" bên dưới để biết chi tiết + bug đã fix) — chưa dừng, dừng khi user xác nhận xong việc. Secret (Jwt/AWS/Anthropic) lưu qua `dotnet user-secrets` (không nằm trong `appsettings.json` đang track git, vì repo này cũng public).
 
-Artifact User Guide/demo script (KHÔNG nằm trong git, chỉ tồn tại trên claude.ai): **https://claude.ai/code/artifact/d6ac3e4c-590e-4495-8b6c-2e7d39e42667**
+Artifact User Guide/demo script (KHÔNG nằm trong git, chỉ tồn tại trên claude.ai) — xem link MỚI NHẤT ở mục "Artifact User Guide đã đổi sang bản MỚI" bên dưới, KHÔNG dùng link cũ nữa.
 
 **Golden demo-data snapshot + reset (mới, 2026-08-02)**: database dùng cho backend Development KHÔNG phải LocalDB mà là SQL Server instance mặc định trên máy (`Data Source=.` trong `appsettings.Development.json`, ghi đè `appsettings.json` vốn trỏ LocalDB — 2 config khác connection string, dễ nhầm khi tự query bằng `sqlcmd`, luôn check `appsettings.Development.json` trước). Vì demo tương tác qua UI thật (bấm 支払済み, 入荷登録...) sẽ làm thay đổi data vĩnh viễn khiến demo scenario/script không còn đúng nữa lần sau, đã tạo cơ chế backup/restore toàn bộ DB thay vì viết undo logic tay cho từng thao tác:
 - `scripts/snapshot-demo-data.ps1` — `BACKUP DATABASE` toàn bộ `CaseMngmt` ra file `.bak` (mặc định lưu ở thư mục backup mặc định của SQL Server, `C:\Program Files\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQL\Backup\CaseMngmt_DemoBaseline.bak` — KHÔNG lưu trong repo vì là binary/runtime data). Chạy lại khi muốn cập nhật baseline mới.
 - `scripts/reset-demo-data.ps1` — dừng process `CaseMngmt.Server` đang chạy nền, `RESTORE DATABASE` đè lại từ baseline, rồi user tự khởi động lại backend. Restore toàn bộ file nên đảm bảo reset đúng 100% mọi bảng (tồn kho, trạng thái thanh toán, receipt...) mà không cần đoán từng thay đổi.
 - Baseline đầu tiên đã chụp ngày 2026-08-02, đúng lúc PO-2026-00020 đang ở trạng thái "sẵn sàng demo" (đã revert thủ công `PINV-2026-00017` từ `Paid` về `Recorded`/`PaidDate=NULL` qua SQL trước khi backup, vì app không có nút "hủy thanh toán"). Data "Test"-prefix (TestSupplier1, Test Attach Supplier, TestPartX, TestCustomer1) phát hiện lẫn trong DB đã kiểm tra và xác nhận **đã soft-delete từ trước** (`Deleted=1`), không cần dọn thêm — không hiện trong app.
 - PO-2026-00020 hiện có tình huống **2 invoice cho cùng 1 PO** (PINV-2026-00016 + PINV-2026-00017, mỗi cái ¥28,000, PO chỉ ¥28,000) — đây chính là nguyên nhân demo 金額不一致の警告 trong 三者照合, giữ nguyên trong baseline vì là ví dụ thật hữu ích để demo cảnh báo mismatch.
+- **Cập nhật 2026-08-02 (phiên sau)**: baseline đã được snapshot LẠI sau khi tắt `documentSearchable` cho 3 field案件 cũ (取引先名/注文日/金額 — xem mục 書類管理 bên dưới) — nếu baseline còn cũ hơn, `reset-demo-data.ps1` sẽ vô tình bật lại 3 field đó.
+
+---
+
+**書類管理 (document management) — overhaul lớn (2026-08-02)**: đã làm 2 phần chính, cả 2 đã test qua API thật + Playwright:
+- **Phần A + B (tìm kiếm)**: thêm field cố định (発注日/受注日/取引先/仕入先, áp dụng cho cả 5 loại `Order`/`Invoice`/`PurchaseOrder`/`PurchaseInvoice`/`GoodsReceipt`) VÀ field bổ sung qua template (đã fix `EntityKeywordRepository.GetDocumentFilesAsync` để group-by-entity + match KeywordValues giống hệt pattern `CaseKeywordRepository.GetDocumentsAsync`, thêm switch "文書検索対象" còn thiếu trong `KeywordBuilder.jsx`, gộp field bổ sung từ mọi module vào `/api/document/template`). Phát hiện + fix 1 bug thật: khi mix keyword của nhiều module trong 1 request, `.All()` matching sẽ vô tình zero-out kết quả của module kia — đã fix bằng cách partition theo module trước khi query.
+- **Cột định danh record** (`対象レコード`): thêm `EntityDisplayName` vào kết quả search, lấy từ `BaseModel.Name` (đã luôn được gán = số chứng từ lúc tạo record, xác nhận qua toàn bộ 5 `*Service.cs`).
+- Đã bổ sung `PurchaseInvoiceService`/`GoodsReceiptService` custom-field support (trước đây chỉ có `Order`/`PurchaseOrder`).
+- **Đã tắt field案件 cũ khỏi 書類管理** (`取引先名`/`注文日`/`金額`, set `documentSearchable=false`) theo yêu cầu vì 案件管理 không còn dùng — đã snapshot baseline mới để giữ trạng thái này.
+- **3 vấn đề còn lại CHƯA làm** (đã ghi nhận, ngoài phạm vi phiên này): #2 phân trang bỏ sót tài liệu entity sau trang 1 (`DocumentController.cs` chỉ gộp entity docs ở `PageNumber<=1`), #3 tài liệu của案件 đã đóng (`Status != "Open"`) bị ẩn khỏi kết quả, #5 tài liệu `Invoice` (bán hàng) không có nút "詳細表示" vì không có `InvoiceDetail.js`.
+
+**Test module 仕入れ qua UI thật (2026-08-02) — PASS toàn bộ, không phát hiện bug**: đã test qua Playwright+Edge thật (không chỉ curl) cả 6 phase: 仕入先登録, 発注登録, 三者照合 (đủ 4 trạng thái chuyển đúng), 発注書発行+lịch sử, 入荷登録(tồn kho cộng đúng), 仕入請求書+支払い確認, 発注提案→"発注書を作成" pre-fill (verify bằng giá trị input thật, không chỉ page text), và cả 2 luồng AI upload (発注アップロード đọc 見積書, 入荷アップロード đọc 納品書 — ảnh test sinh bằng PowerShell `System.Drawing`, gọi Claude thật). Đã dọn sạch data test + reset về baseline sau khi xong.
+
+**Demo đã publish qua ngrok (2026-08-02)**: build production (`npm run build` → mirror `wwwroot`) + backend chạy port 5178 (`ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --urls http://localhost:5178`) + `ngrok http 5178`. Phát hiện + fix 1 bug thật lúc publish: `frontend/.env.production` có `REACT_APP_BASE_URL` trỏ tới 1 IP production CŨ không liên quan (`54.250.117.30`, sót lại từ repo gốc) — bản build production trước đó gọi nhầm sang IP đó khiến login treo im lặng. Đã sửa thành rỗng (relative/same-origin) — **fix này CHƯA commit**, xem file `frontend/.env.production`. URL ngrok đổi mỗi lần restart (không có static domain), xem devlog/lịch sử chat gần nhất nếu cần biết URL đang sống.
+
+**Artifact User Guide đã đổi sang bản MỚI (2026-08-02)**: `https://claude.ai/code/artifact/945d5a20-2d36-473c-8271-59348f271b81` (tiêu đề "受注・仕入 業務管理システム ご利用ガイド") — bản CŨ (`d6ac3e4c-...`) chỉ có phía 受注, đã lỗi thời. Bản mới có đủ cả 仕入れ (8 tính năng, tách rõ AI thật ①-⑥ vs tự động hoá không-AI ⑦⑧), status label tiếng Nhật khớp UI, demo script Part A/B đã verify khớp 100% dữ liệu baseline hiện tại.
 
 ---
 
@@ -89,13 +105,21 @@ Menu Sidebar "仕入れ管理" (mở rộng được): 仕入先検索/仕入先
 
 ## Next Steps
 
-1. **Test module 仕入れ qua UI thật** (Playwright headless + Edge, theo cách đã làm ở phiên dynamic-field 2026-07-31) — cả 6 phase mới chỉ test qua API/curl, chưa qua browser thật. Ưu tiên Phase 6 (upload ảnh qua form thật) và Phase 4 (luồng "発注書を作成" pre-fill trên UI).
+1. ~~Test module 仕入れ qua UI thật~~ — **DONE 2026-08-02**, PASS toàn bộ qua Playwright thật, không phát hiện bug. Xem mục "Test module 仕入れ qua UI thật" phía trên.
 2. ~~Dọn dữ liệu test~~ — đã kiểm tra 2026-08-02: các bản ghi tên bắt đầu "Test" (TestSupplier1, Test Attach Supplier, TestPartX, TestCustomer1) đã ở trạng thái `Deleted=1` từ trước, không hiện trong app, không cần dọn thêm.
 3. Search/filter theo giá trị custom field trên `ProductSearch.js`/`OrderSearch.js`/`SupplierSearch.js` (cố ý để ngoài phạm vi các phiên vừa rồi).
 4. Cân nhắc tách tài nguyên AWS riêng (S3 bucket/IAM) cho repo này — hiện AWS key trong `dotnet user-secrets` là key thật đang dùng CHUNG với `case-management` production (bucket `case-bucket-ap-northeast`), chưa tách riêng.
 5. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
 6. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
 7. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber`/`PurchaseOrderNumber`/`GoodsReceiptNumber`/`PurchaseInvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
+8. **[Ghi nhận 2026-08-02, chưa làm]** Cải thiện giao diện màn hình login — hiện còn đơn giản/chưa chuyên nghiệp.
+9. **[Ghi nhận 2026-08-02, chưa làm]** Kiểm tra lại テンプレート管理 — hiện đang lộn xộn: (a) `テンプレート名` hiện tên tiếng Anh (vd "PurchaseOrder Template"), nên đổi hiển thị sang tiếng Nhật; (b) `フィールド数` hiển thị SAI — vd template PurchaseOrder ghi 11 field nhưng vào `フィールド管理` thực tế chỉ thấy 2 field, cần tìm nguyên nhân (có thể đang đếm nhầm field đã `IsHidden`/`Deleted`, hoặc đếm cả field-đính-kèm-file `IsShowOnTemplate=false`).
+10. **[Ghi nhận 2026-08-02, chưa làm]** Đổi text "受注管理システム" trong Sidebar cho đẹp/chuyên nghiệp hơn, và vì hệ thống giờ có cả module 仕入れ (không chỉ 受注) nên tên hiển thị cần phản ánh đúng phạm vi (tương tự tiêu đề artifact User Guide mới đã đổi thành "受注・仕入 業務管理システム").
+11. **[Ghi nhận 2026-08-02, chưa làm]** Tạo thêm demo data, đặc biệt là **documents/tài liệu đính kèm** — hiện vào 書類管理 tìm kiếm chỉ ra vỏn vẹn 2 kết quả, quá ít để demo tính năng tìm kiếm/lọc cho thuyết phục.
+12. **[Ghi nhận 2026-08-02, chưa làm]** 経営ダッシュボード (`SalesDashboard.js`/`DashboardService`) hiện CHỈ tổng hợp phía 受注 (bán hàng) — chưa có phần tổng hợp/AI comment cho phía 仕入れ (mua hàng: 発注 tồn đọng, 仕入請求書 sắp đến hạn, v.v.). Cân nhắc mở rộng dashboard hoặc thêm dashboard riêng cho 仕入れ.
+13. **[Ghi nhận 2026-08-02, chưa làm]** AIチャット (`ChatAssistant`) — thêm sẵn vài câu hỏi gợi ý (suggested prompts) để người dùng bấm chọn thay vì phải tự gõ, giảm rào cản dùng thử lần đầu.
+14. **[Ghi nhận 2026-08-02, chưa làm]** 3 vấn đề còn lại của 書類管理 (đã audit kỹ, xem mục "書類管理 — overhaul lớn" phía trên): #2 phân trang bỏ sót tài liệu entity sau trang 1, #3 tài liệu của案件 đã đóng bị ẩn khỏi kết quả, #5 tài liệu `Invoice` (bán hàng) không mở được record nguồn vì chưa có `InvoiceDetail.js`.
+15. Commit fix `frontend/.env.production` (xoá IP production cũ hardcode, đổi thành rỗng/relative) — đã sửa và test qua ngrok thành công 2026-08-02 nhưng **CHƯA commit**, cần user xác nhận.
 
 Các next-step khác liên quan riêng tới `case-management` gốc (rotate AWS key hardcode trong repo đó, thêm `*.log` vào `.gitignore` gốc...) — không còn thuộc phạm vi làm việc, xem `docs/devlog/2026-07-31.md` nếu cần biết chi tiết.
 
