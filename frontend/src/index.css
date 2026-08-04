@@ -3,15 +3,10 @@
 
 html {
   font-family: "Yu Gothic", sans-serif;
-  font-size: 24px;
-  color: #11596f;
-  line-height: 150%;
-  font-weight: 1000;
 }
 
 body {
   min-height: 100vh;
-  background-color: #fff;
 }
 
 .App {
@@ -47,7 +42,7 @@ input[type="password"]:not(.MuiInputBase-input),
 input[type="date"]:not(.MuiInputBase-input),
 button:not(.MuiButtonBase-root),
 textarea:not(.MuiInputBase-input) {
-  font-size: 24px;
+  font-size: 15px;
   padding: 0.25rem;
   border-radius: 0.2rem;
   border-width: 2px;
@@ -77,16 +72,6 @@ select {
   border-style: inset;
   border-color: rgba(0, 0, 0, 0.87);
   border-image: initial;
-}
-
-/* MUI form controls (Dialog/TextField/Select/Autocomplete) inherit the 24px
-   root font-size via `font: inherit`, but MUI's own padding/height math is
-   built for a 16px base — the mismatch makes input text overflow its box
-   and render off-center. Reset back to MUI's expected size; legacy
-   .section-input fields are untouched since they don't carry this class. */
-.MuiInputBase-input,
-.MuiInputBase-root {
-  font-size: 16px !important;
 }
 
 button {
@@ -180,7 +165,7 @@ ul.search-results {
   flex-direction: column;
   justify-content: flex-start;
   padding: 1rem;
-  background-color: #11596f;
+  background-color: #1f3a5f;
   color: white;
   box-sizing: border-box;
 }
@@ -191,20 +176,6 @@ li.search-result {
 
 .MuiTableCell-root {
   border-left: 1px solid rgba(224, 224, 224, 1) !important;
-}
-.MuiTableCell-head {
-  background-color: #004862;
-  color: #fff !important;
-}
-.MuiTableCell-body {
-  color: white !important;
-}
-.MuiTableRow-root {
-  color: white !important;
-  background-color: #11596f;
-}
-.MuiTableRow-root:hover {
-  background-color: #004862;
 }
 
 .MuiTableRow-root:not(:hover) .container-search-actions {
@@ -248,12 +219,6 @@ input:invalid[focused="true"] {
   flex-direction: row;
   align-items: center;
   column-gap: 8px;
-}
-.search-close,
-.search-edit,
-.search-delete {
-  background-color: #14873a !important;
-  color: #fff !important;
 }
 .search-action .Mui-disabled {
   color: white !important;

@@ -11,7 +11,11 @@ Tài liệu bổ sung:
 
 ---
 
-## Current State (2026-08-01)
+## Current State (2026-08-04)
+
+**Redesign toàn bộ giao diện (theme màu mới + điều hướng mới) — ĐÃ CODE XONG + ĐÃ MERGE vào `main` (2026-08-04)**: theo yêu cầu "thay đổi giao diện hoàn toàn mới", đã tạo theme MUI trung tâm (`frontend/src/theme.js`, palette navy `#1F3A5F`/copper `#B85A25`), viết lại `Sidebar.js` (nhóm menu mới マスタ管理/受注管理/仕入れ管理/レポート・ツール, drawer thu gọn được, avatar+logout ở AppBar), `Login.js` (MUI Card/TextField), `FormButton.js` (màu theo theme + thêm `buttonType="secondaryAction"`), dọn hex cứng toàn app, đổi tab title + favicon. Sau đó có 1 lượt tinh chỉnh tiếp theo phản hồi trực tiếp từ user: header bảng đổi từ khối navy đặc sang kiểu nhẹ (nền sáng/chữ đậm/gạch chân), tăng cỡ chữ toàn app, component mới `FormSection.js` (Card bọc nội dung form thay vì để trần trên nền xám) áp dụng cho 7 trang detail (`OrderDetail`/`PurchaseOrderDetail`/`GoodsReceiptDetail`/`PurchaseInvoiceDetail`/`SupplierDetail`/`ProductDetail`/`CustomerDetail`), phân cấp lại bộ nút 保存/新規作成/添付 (không còn 3 khối đặc bằng nhau), và đổi style tiêu đề section "カスタム項目" từ Divider+Chip sang tiêu đề đơn giản đồng bộ với `FormSection`. Đã test qua Playwright+Edge thật ở mọi bước, `npm run build` production sạch. Xem `docs/devlog/2026-08-03.md` để biết đầy đủ quyết định + các bug phát hiện thêm qua QA (nút 編集/削除 lẫn màu ở 15 file, 2 bug scroll khi đổi trang/mở menu).
+
+**Giữ giao diện cũ làm đường lùi — branch `ui-legacy` (mới, 2026-08-04)**: theo yêu cầu user (muốn dùng giao diện mới làm chính nhưng vẫn có đường lùi nếu phát sinh bug, hoặc sau này khách hàng yêu cầu dùng lại giao diện cũ), branch **`ui-legacy`** đã được tạo tại đúng điểm `main` TRƯỚC khi merge redesign (commit `a76394c`, "Fix production build using stale hardcoded IP; update project docs", 2026-08-02) — đóng băng vĩnh viễn toàn bộ giao diện cũ, **không phát triển tiếp** trên branch này. Cách dựng lại nếu cần: `git checkout ui-legacy` → `cd frontend && npm run build` → mirror kết quả vào `wwwroot` (`robocopy ... /MIR`, xem mục "Demo/chia sẻ ra ngoài" bên dưới) → chạy backend trỏ vào `wwwroot` đó. Quyết định này thay cho việc xây cơ chế toggle runtime trong app (đã cân nhắc và loại bỏ vì chi phí bảo trì lâu dài quá cao — sẽ phải duy trì song song 2 bộ code UI mãi mãi — trong khi nhu cầu thực tế chỉ là có đường lùi, không cần chạy đồng thời).
 
 **QUAN TRỌNG — phạm vi repo đã đổi**: kể từ 2026-07-31, đây là repo **`order-procurement-dx`** (clone từ `order-platform-dx`), và là **repo DUY NHẤT** còn được làm việc. User yêu cầu **không đụng vào `case-management` (`f:\Prj\CaseMngmt`) hay `order-platform-dx` (`f:\Prj\CaseMngmt-demo`) nữa** — xem chi tiết lý do + ràng buộc trong `docs/devlog/2026-07-31.md`.
 
@@ -105,6 +109,7 @@ Menu Sidebar "仕入れ管理" (mở rộng được): 仕入先検索/仕入先
 
 ## Next Steps
 
+0. ~~Redesign giao diện: review + commit + merge~~ — **DONE 2026-08-04**, đã merge `feature/ui-redesign` vào `main`, giao diện mới giờ là chính thức. Giao diện cũ đóng băng ở branch `ui-legacy` (xem Current State). **Còn treo**: build lại production + cập nhật demo ngrok đang chạy (hiện vẫn phục vụ bản build cũ từ trước redesign) — cần user xác nhận trước khi rebuild+redeploy demo sống.
 1. ~~Test module 仕入れ qua UI thật~~ — **DONE 2026-08-02**, PASS toàn bộ qua Playwright thật, không phát hiện bug. Xem mục "Test module 仕入れ qua UI thật" phía trên.
 2. ~~Dọn dữ liệu test~~ — đã kiểm tra 2026-08-02: các bản ghi tên bắt đầu "Test" (TestSupplier1, Test Attach Supplier, TestPartX, TestCustomer1) đã ở trạng thái `Deleted=1` từ trước, không hiện trong app, không cần dọn thêm.
 3. Search/filter theo giá trị custom field trên `ProductSearch.js`/`OrderSearch.js`/`SupplierSearch.js` (cố ý để ngoài phạm vi các phiên vừa rồi).
@@ -112,9 +117,9 @@ Menu Sidebar "仕入れ管理" (mở rộng được): 仕入先検索/仕入先
 5. Quyết định có triển khai RAG hay không (hướng mở rộng AI thứ 3 đã thảo luận trước đây), hoặc chuyển sang các việc treo khác.
 6. Excel import cho Product (`ClosedXML`) — nguồn dữ liệu tồn kho thực tế của SME hiện quản lý bằng Excel.
 7. Nâng cấp đánh số `OrderNumber`/`InvoiceNumber`/`PurchaseOrderNumber`/`GoodsReceiptNumber`/`PurchaseInvoiceNumber` từ COUNT-based sang sequence table atomic trước khi chạy production thật (rủi ro concurrency hiện tại chấp nhận được cho demo, không cho production).
-8. **[Ghi nhận 2026-08-02, chưa làm]** Cải thiện giao diện màn hình login — hiện còn đơn giản/chưa chuyên nghiệp.
+8. ~~Cải thiện giao diện màn hình login~~ — **DONE 2026-08-03**, viết lại bằng MUI Card/TextField/Alert theo theme mới, xem mục "Redesign toàn bộ giao diện" phía trên.
 9. **[Ghi nhận 2026-08-02, chưa làm]** Kiểm tra lại テンプレート管理 — hiện đang lộn xộn: (a) `テンプレート名` hiện tên tiếng Anh (vd "PurchaseOrder Template"), nên đổi hiển thị sang tiếng Nhật; (b) `フィールド数` hiển thị SAI — vd template PurchaseOrder ghi 11 field nhưng vào `フィールド管理` thực tế chỉ thấy 2 field, cần tìm nguyên nhân (có thể đang đếm nhầm field đã `IsHidden`/`Deleted`, hoặc đếm cả field-đính-kèm-file `IsShowOnTemplate=false`).
-10. **[Ghi nhận 2026-08-02, chưa làm]** Đổi text "受注管理システム" trong Sidebar cho đẹp/chuyên nghiệp hơn, và vì hệ thống giờ có cả module 仕入れ (không chỉ 受注) nên tên hiển thị cần phản ánh đúng phạm vi (tương tự tiêu đề artifact User Guide mới đã đổi thành "受注・仕入 業務管理システム").
+10. ~~Đổi text "受注管理システム" trong Sidebar~~ — **DONE 2026-08-03**, đổi thành "受注・仕入 業務管理システム" ở branding đầu Drawer + tab title + favicon.
 11. **[Ghi nhận 2026-08-02, chưa làm]** Tạo thêm demo data, đặc biệt là **documents/tài liệu đính kèm** — hiện vào 書類管理 tìm kiếm chỉ ra vỏn vẹn 2 kết quả, quá ít để demo tính năng tìm kiếm/lọc cho thuyết phục.
 12. **[Ghi nhận 2026-08-02, chưa làm]** 経営ダッシュボード (`SalesDashboard.js`/`DashboardService`) hiện CHỈ tổng hợp phía 受注 (bán hàng) — chưa có phần tổng hợp/AI comment cho phía 仕入れ (mua hàng: 発注 tồn đọng, 仕入請求書 sắp đến hạn, v.v.). Cân nhắc mở rộng dashboard hoặc thêm dashboard riêng cho 仕入れ.
 13. **[Ghi nhận 2026-08-02, chưa làm]** AIチャット (`ChatAssistant`) — thêm sẵn vài câu hỏi gợi ý (suggested prompts) để người dùng bấm chọn thay vì phải tự gõ, giảm rào cản dùng thử lần đầu.

@@ -172,7 +172,7 @@ const PurchaseInvoiceSearch = () => {
                     <TableCell style={{ textAlign: "center" }}>
                       <Button
                         variant="contained"
-                        color="success"
+                        color="primary"
                         startIcon={<Icons.Visibility />}
                         onClick={() => handleClickDetail(item.id)}
                         style={{ margin: "1px 5px" }}

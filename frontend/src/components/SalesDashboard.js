@@ -52,7 +52,7 @@ const StatTile = ({ label, value, color }) => (
       </Typography>
       <Typography
         variant="h4"
-        sx={{ color: color || "#11596F", fontWeight: "bold", fontSize: { xs: "1.6rem" } }}
+        sx={{ color: color || "#1F3A5F", fontWeight: "bold", fontSize: { xs: "1.6rem" } }}
       >
         {value}
       </Typography>
@@ -221,12 +221,12 @@ const SalesDashboard = () => {
             <StatTile
               label="請求済み金額"
               value={`¥${summary.totalInvoicedAmount.toLocaleString()}`}
-              color="#0B78D1"
+              color="#0288D1"
             />
             <StatTile
               label="リスクあり受注件数"
               value={summary.riskFlaggedCount}
-              color={summary.riskFlaggedCount > 0 ? "#c62828" : "#11596F"}
+              color={summary.riskFlaggedCount > 0 ? "#c62828" : "#1F3A5F"}
             />
           </div>
         </Grid>
@@ -284,7 +284,7 @@ const SalesDashboard = () => {
                   {
                     data: summary.monthlySales.map((m) => m.totalAmount),
                     label: "売上金額",
-                    color: "#0B78D1",
+                    color: "#0288D1",
                     valueFormatter: (v) => `¥${v.toLocaleString()}`,
                   },
                 ]}
@@ -335,7 +335,7 @@ const SalesDashboard = () => {
                   {
                     data: summary.topCustomers.map((c) => c.totalAmount),
                     label: "売上金額",
-                    color: "#11596F",
+                    color: "#1F3A5F",
                     valueFormatter: (v) => `¥${v.toLocaleString()}`,
                   },
                 ]}
@@ -380,7 +380,7 @@ const SalesDashboard = () => {
                   {
                     data: summary.topProducts.map((p) => p.totalAmount),
                     label: "売上金額",
-                    color: "#0B78D1",
+                    color: "#0288D1",
                     valueFormatter: (v) => `¥${v.toLocaleString()}`,
                   },
                 ]}

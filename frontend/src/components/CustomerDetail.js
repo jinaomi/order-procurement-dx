@@ -3,6 +3,7 @@ import axios from "../api/axios";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormInput from "./until/FormInput";
 import { useSearchParams } from "react-router-dom";
+import FormSection from "./until/FormSection";
 import { Grid } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -171,6 +172,7 @@ const CustomerDetail = ({ customerId }) => {
   return (
     <section className="customer">
       <form onSubmit={onSubmit}>
+        <FormSection title="取引先情報">
         <Grid container columnSpacing={5} rowSpacing={3}>
           <Grid item xs={6}>
             <FormInput
@@ -351,14 +353,17 @@ const CustomerDetail = ({ customerId }) => {
               ></textarea>
             </div>
           </Grid>
-          <Grid item xs={12}>
-            <div className="handle-button">
-              {/* Submit Button */}
-              <FormButton itemName="保存" type="submit" />
-              <FormButton itemName="新規作成" onClick={handleClear} />
-            </div>
-          </Grid>
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="保存" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+          <FormButton
+            itemName="新規作成"
+            buttonType="secondaryAction"
+            onClick={handleClear}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+        </div>
       </form>
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />

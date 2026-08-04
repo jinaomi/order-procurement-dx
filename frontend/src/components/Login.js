@@ -1,7 +1,8 @@
 import LoadingSpinner from "./until/LoadingSpinner.js";
 import { useRef, useState, useEffect } from "react";
 import useAuth from "../hooks/useAuth";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Alert, Box, Card, CardContent, TextField, Typography } from "@mui/material";
 
 import axios from "../api/axios";
 import FormButton from "./until/FormButton";
@@ -81,54 +82,60 @@ const Login = () => {
   };
 
   return (
-    <section
-      className="select-form"
-      style={{ borderStyle: "solid", maxWidth: "600px" }}
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100vh",
+        width: "100%",
+        background: (theme) =>
+          `linear-gradient(160deg, ${theme.palette.background.default} 60%, ${theme.palette.primary.light}22)`,
+      }}
     >
-      <p
-        ref={errRef}
-        className={errMsg ? "errmsg" : "offscreen"}
-        aria-live="assertive"
-      >
-        {errMsg}
-      </p>
+      <Card sx={{ maxWidth: 400, width: "100%", mx: 2 }} elevation={3}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography
+            variant="h6"
+            align="center"
+            sx={{ fontWeight: 700, color: "primary.main", mb: 3 }}
+          >
+            受注・仕入 業務管理システム
+          </Typography>
 
-      <LoadingSpinner loading={loading}></LoadingSpinner>
+          {errMsg && (
+            <Alert ref={errRef} severity="error" tabIndex={-1} sx={{ mb: 2 }}>
+              {errMsg}
+            </Alert>
+          )}
 
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="username">ユーザー名を入力してください</label>
-        <input
-          type="text"
-          id="username"
-          ref={userRef}
-          autoComplete="off"
-          onChange={(e) => setUser(e.target.value)}
-          value={username}
-          required
-        />
-        <label htmlFor="password" style={{ marginTop: "1rem" }}>
-          パスワードを入力してください
-        </label>
-        <input
-          type="password"
-          id="password"
-          onChange={(e) => setPwd(e.target.value)}
-          value={password}
-          required
-        />
-        <br />
-        {/* <button>ログイン</button> */}
-        <FormButton itemName="ログイン" type="submit" />
-      </form>
-      <div className="version-info">Version 24.1.1000 Powered by ITFreee</div>
-      {/* <p>
-        Need an Account?
-        <br />
-        <span className="line">
-          <Link to="/register">Sign Up</Link>
-        </span>
-      </p> */}
-    </section>
+          <LoadingSpinner loading={loading}></LoadingSpinner>
+
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <TextField
+              label="ユーザー名"
+              id="username"
+              inputRef={userRef}
+              autoComplete="off"
+              onChange={(e) => setUser(e.target.value)}
+              value={username}
+              required
+              fullWidth
+            />
+            <TextField
+              label="パスワード"
+              id="password"
+              type="password"
+              onChange={(e) => setPwd(e.target.value)}
+              value={password}
+              required
+              fullWidth
+            />
+            <FormButton itemName="ログイン" type="submit" />
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

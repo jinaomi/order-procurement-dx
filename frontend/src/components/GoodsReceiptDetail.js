@@ -4,6 +4,7 @@ import FormSelection from "./until/FormSelection";
 import DialogHandle from "./until/DialogHandle";
 import AttachedFilesList from "./until/AttachedFilesList";
 import CustomFieldsSection from "./until/CustomFieldsSection";
+import FormSection from "./until/FormSection";
 import { Grid, Table, TableBody, TableCell, TableHead, TableRow, Alert, Chip, Divider } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -209,6 +210,8 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
     return (
       <section className="goods-receipt">
         {viewData && (
+          <>
+          <FormSection title="入荷情報">
           <Grid container columnSpacing={5} rowSpacing={3}>
             <Grid item xs={12}>
               <b>入荷番号：</b> {viewData.goodsReceiptNumber} &nbsp;&nbsp;
@@ -257,19 +260,19 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
                   ))}
               </>
             )}
-            <Grid item xs={12}>
-              <div className="handle-button">
-                <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />
-              </div>
-            </Grid>
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="GoodsReceipt"
-                entityId={goodsReceiptId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
           </Grid>
+          </FormSection>
+          <div className="handle-button">
+            <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} sx={{ width: "auto", minWidth: 160 }} />
+          </div>
+          <FormSection>
+            <AttachedFilesList
+              entityType="GoodsReceipt"
+              entityId={goodsReceiptId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+          </>
         )}
         <DialogHandle
           open={showAttachDialog}
@@ -289,23 +292,24 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
   return (
     <section className="goods-receipt">
       <form onSubmit={onSubmit}>
+        {createdInfo && warnings.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {warnings.map((w, idx) => (
+              <div key={idx}>{w}</div>
+            ))}
+          </Alert>
+        )}
+        {createdInfo && (
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} sx={{ width: "auto" }} />}
+          >
+            入荷を登録しました。納品書の写真などを添付できます。
+          </Alert>
+        )}
+        <FormSection title="入荷登録">
         <Grid container columnSpacing={5} rowSpacing={3}>
-          {createdInfo && warnings.length > 0 && (
-            <Grid item xs={12}>
-              <Alert severity="warning">
-                {warnings.map((w, idx) => (
-                  <div key={idx}>{w}</div>
-                ))}
-              </Alert>
-            </Grid>
-          )}
-          {createdInfo && (
-            <Grid item xs={12}>
-              <Alert severity="success" action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />}>
-                入荷を登録しました。納品書の写真などを添付できます。
-              </Alert>
-            </Grid>
-          )}
           <Grid item xs={6}>
             <div className="section-item">
               <label className="section-label">
@@ -384,21 +388,20 @@ const GoodsReceiptDetail = ({ goodsReceiptId }) => {
             values={customFieldValues}
             onChange={setCustomFieldValues}
           />
-          <Grid item xs={12}>
-            <div className="handle-button">
-              <FormButton itemName="登録" type="submit" />
-            </div>
-          </Grid>
-          {createdInfo && (
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="GoodsReceipt"
-                entityId={createdInfo.goodsReceiptId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
-          )}
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="登録" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+        </div>
+        {createdInfo && (
+          <FormSection>
+            <AttachedFilesList
+              entityType="GoodsReceipt"
+              entityId={createdInfo.goodsReceiptId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+        )}
       </form>
       <DialogHandle
         open={showAttachDialog}

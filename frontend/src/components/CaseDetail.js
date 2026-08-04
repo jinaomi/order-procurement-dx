@@ -610,7 +610,8 @@ const CaseDetail = ({ caseId, createType = true }) => {
                     >
                       {item.isImage && (
                         <Button
-                          className="search-delete"
+                          color="primary"
+                          variant="outlined"
                           onClick={async () => {
                             await viewOrDownloadFile(item, "view");
                           }}
@@ -621,7 +622,8 @@ const CaseDetail = ({ caseId, createType = true }) => {
                       )}
                       <Button
                         startIcon={<Icons.Download />}
-                        className="search-edit"
+                        color="primary"
+                        variant="outlined"
                         onClick={async () => {
                           await viewOrDownloadFile(item, "download");
                         }}
@@ -630,7 +632,8 @@ const CaseDetail = ({ caseId, createType = true }) => {
                       </Button>
                       <Button
                         startIcon={<Icons.Delete />}
-                        className="search-edit"
+                        color="error"
+                        variant="outlined"
                         onClick={() => {
                           setFileDelete(item);
                           setShowAlert(true);
@@ -667,7 +670,7 @@ const CaseDetail = ({ caseId, createType = true }) => {
                 style={{
                   width: "100%",
                   marginTop: "10px",
-                  border: "3px solid #11596F",
+                  border: "3px solid #1F3A5F",
                 }}
               />
             </Grid>

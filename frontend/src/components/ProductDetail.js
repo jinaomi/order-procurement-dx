@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import LoadingSpinner from "./until/LoadingSpinner";
 import FormInput from "./until/FormInput";
 import CustomFieldsSection from "./until/CustomFieldsSection";
+import FormSection from "./until/FormSection";
 import { Grid } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -122,6 +123,7 @@ const ProductDetail = ({ productId }) => {
   return (
     <section className="product">
       <form onSubmit={onSubmit}>
+        <FormSection title="商品情報">
         <Grid container columnSpacing={5} rowSpacing={3}>
           <Grid item xs={6}>
             <FormInput
@@ -215,13 +217,17 @@ const ProductDetail = ({ productId }) => {
             values={customFieldValues}
             onChange={setCustomFieldValues}
           />
-          <Grid item xs={12}>
-            <div className="handle-button">
-              <FormButton itemName="保存" type="submit" />
-              <FormButton itemName="新規作成" onClick={handleClear} />
-            </div>
-          </Grid>
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="保存" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+          <FormButton
+            itemName="新規作成"
+            buttonType="secondaryAction"
+            onClick={handleClear}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+        </div>
       </form>
       <LoadingSpinner loading={loading}></LoadingSpinner>
       <FormSnackbar item={snackbar} setItem={setSnackbar} />

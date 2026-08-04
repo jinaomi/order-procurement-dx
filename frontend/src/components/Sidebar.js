@@ -19,6 +19,9 @@ import DocumentScannerIcon from "@mui/icons-material/DocumentScanner";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
+import InsightsIcon from "@mui/icons-material/Insights";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -26,8 +29,13 @@ import ListItemText from "@mui/material/ListItemText";
 import MenuIcon from "@mui/icons-material/Menu";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { Collapse, createTheme } from "@mui/material";
+import Avatar from "@mui/material/Avatar";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Tooltip from "@mui/material/Tooltip";
+import { Collapse } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
 import CustomerSearch from "./CustomerSearch";
 import CaseSearch from "./CaseSearch";
 import CaseDetail from "./CaseDetail";
@@ -51,67 +59,88 @@ import SalesDashboard from "./SalesDashboard";
 import ChatAssistant from "./ChatAssistant";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
-import { ThemeProvider } from "@emotion/react";
 import useAuth from "../hooks/useAuth";
 
-const DEFAULT_DRAWER_WIDTH = 340;
-const MIN_DRAWER_WIDTH = 220;
-const MAX_DRAWER_WIDTH = 480;
-const AI_ACCENT_COLOR = "#b85a25";
-const AI_ACCENT_SOFT = "#f2e3d6";
+const DRAWER_WIDTH_EXPANDED = 260;
+const DRAWER_WIDTH_COLLAPSED = 64;
+
+const NAV_GROUPS = [
+  {
+    key: "Master",
+    label: "マスタ管理",
+    icon: <BusinessCenterIcon />,
+    items: [
+      { key: "Customer", label: "顧客情報管理", icon: <BusinessIcon /> },
+      { key: "Product Management", label: "商品・在庫管理", icon: <Inventory2Icon /> },
+      { key: "Search Supplier", label: "仕入先検索/登録", icon: <SearchIcon /> },
+    ],
+  },
+  {
+    key: "Order",
+    label: "受注管理",
+    icon: <ShoppingCartIcon />,
+    items: [
+      { key: "Search Order", label: "受注検索", icon: <SearchIcon /> },
+      { key: "Create Order", label: "受注登録", icon: <PlaylistAddIcon /> },
+      { key: "Upload Order", label: "受注アップロード（AI）", icon: <DocumentScannerIcon /> },
+      { key: "Invoice Management", label: "受注請求書管理", icon: <ReceiptLongIcon /> },
+    ],
+  },
+  {
+    key: "Purchase",
+    label: "仕入れ管理",
+    icon: <LocalShippingIcon />,
+    items: [
+      { key: "Search Purchase Order", label: "発注検索/登録", icon: <SearchIcon /> },
+      { key: "Upload Purchase Order", label: "発注アップロード（AI）", icon: <DocumentScannerIcon /> },
+      { key: "Search Goods Receipt", label: "入荷検索/登録", icon: <SearchIcon /> },
+      { key: "Upload Goods Receipt", label: "入荷アップロード（AI）", icon: <DocumentScannerIcon /> },
+      { key: "Reorder Suggestions", label: "発注提案", icon: <TipsAndUpdatesIcon /> },
+      { key: "Purchase Invoice Management", label: "仕入請求書管理", icon: <ReceiptLongIcon /> },
+    ],
+  },
+  {
+    key: "Reports",
+    label: "レポート・ツール",
+    icon: <InsightsIcon />,
+    items: [
+      { key: "Sales Dashboard", label: "経営ダッシュボード", icon: <DashboardIcon /> },
+      { key: "Document Search", label: "書類管理", icon: <SearchIcon /> },
+      { key: "Chat Assistant", label: "AIチャット", icon: <SmartToyIcon /> },
+    ],
+  },
+];
 
 const Sidebar = () => {
-  const [drawerWidth, setDrawerWidth] = React.useState(DEFAULT_DRAWER_WIDTH);
-  const isResizing = React.useRef(false);
+  const theme = useTheme();
+  const [collapsed, setCollapsed] = React.useState(
+    () => localStorage.getItem("sidebarCollapsed") === "true"
+  );
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [caseOpen, setCaseOpen] = React.useState(false);
-  const [orderOpen, setOrderOpen] = React.useState(false);
-  const [supplierOpen, setSupplierOpen] = React.useState(false);
+  const [groupOpen, setGroupOpen] = React.useState({
+    Master: false,
+    Order: false,
+    Purchase: false,
+    Reports: false,
+  });
   const [header, setHeader] = React.useState();
   const [activeKey, setActiveKey] = React.useState(null);
   const [caseId, setCaseDetail] = React.useState("");
+  const [userMenuAnchor, setUserMenuAnchor] = React.useState(null);
   const navigate = useNavigate();
   const { auth } = useAuth();
   const isSuperAdmin = auth?.roles?.includes("SuperAdmin");
 
-  const handleResizeStart = (e) => {
-    e.preventDefault();
-    isResizing.current = true;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
+  React.useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", String(collapsed));
+  }, [collapsed]);
 
   React.useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizing.current) return;
-      const newWidth = Math.min(
-        MAX_DRAWER_WIDTH,
-        Math.max(MIN_DRAWER_WIDTH, e.clientX)
-      );
-      setDrawerWidth(newWidth);
-    };
-    const handleMouseUp = () => {
-      if (isResizing.current) {
-        isResizing.current = false;
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      }
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
-
-  const theme = createTheme({
-    typography: {
-      fontFamily: ['"MS Gothic"', "sans-serif"].join(","),
-      fontWeight: 1000,
-    },
-    components: {},
-  });
+    // Chuyển trang (đổi header) không tự cuộn về đầu — nếu trang trước đã
+    // cuộn xuống, trang mới hiện ra sẽ bị cắt mất phần trên (tiêu đề/bộ lọc).
+    window.scrollTo(0, 0);
+  }, [header]);
 
   const mapPage = (page) => {
     switch (page) {
@@ -131,7 +160,7 @@ const Sidebar = () => {
         setHeader("書類管理");
         break;
       case "Order":
-        setOrderOpen(!orderOpen);
+        setGroupOpen((prev) => ({ ...prev, Order: !prev.Order }));
         break;
       case "Search Order":
         setHeader("受注検索");
@@ -145,8 +174,14 @@ const Sidebar = () => {
       case "Product Management":
         setHeader("商品・在庫管理");
         break;
-      case "Supplier":
-        setSupplierOpen(!supplierOpen);
+      case "Master":
+        setGroupOpen((prev) => ({ ...prev, Master: !prev.Master }));
+        break;
+      case "Purchase":
+        setGroupOpen((prev) => ({ ...prev, Purchase: !prev.Purchase }));
+        break;
+      case "Reports":
+        setGroupOpen((prev) => ({ ...prev, Reports: !prev.Reports }));
         break;
       case "Search Supplier":
         setHeader("仕入先検索");
@@ -188,9 +223,9 @@ const Sidebar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  // "Case"/"Order"/"Supplier" only expand/collapse their parent menu — they don't map to an
-  // actual page, so they should never be marked as the "selected" item.
-  const TOGGLE_ONLY_KEYS = ["Case", "Order", "Supplier"];
+  // "Case"/"Master"/"Order"/"Purchase"/"Reports" only expand/collapse their parent
+  // menu — they don't map to an actual page, so they should never be marked "selected".
+  const TOGGLE_ONLY_KEYS = ["Case", "Master", "Order", "Purchase", "Reports"];
 
   const handleClick = (item) => {
     setCaseDetail("");
@@ -200,19 +235,37 @@ const Sidebar = () => {
     mapPage(item);
   };
 
+  const groupRefs = React.useRef({});
+
+  const handleGroupClick = (groupKey, isCollapsedRail) => {
+    if (isCollapsedRail) {
+      setCollapsed(false);
+    }
+    const willOpen = !groupOpen[groupKey];
+    handleClick(groupKey);
+    if (willOpen) {
+      // Scroll bar bên trong Drawer không tự cuộn khi menu vừa mở nằm ở
+      // vị trí đã cuộn qua — đưa nút vừa bấm lên đầu vùng nhìn thấy để
+      // các mục con mới hiện ra không bị cắt mất phần trên.
+      requestAnimationFrame(() => {
+        groupRefs.current[groupKey]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
+
   const hoverButton = {
     "&:hover": {
-      backgroundColor: "#11596F",
+      backgroundColor: theme.palette.primary.main,
       color: "#fff",
     },
     "&:active": {
-      backgroundColor: "#0E563B",
+      backgroundColor: theme.palette.primary.dark,
     },
     "&:hover .MuiListItemIcon-root": {
       color: "#fff",
     },
     "&.Mui-selected, &.Mui-selected:hover": {
-      backgroundColor: "#11596F",
+      backgroundColor: theme.palette.primary.main,
       color: "#fff",
     },
     "&.Mui-selected .MuiListItemIcon-root": {
@@ -236,31 +289,83 @@ const Sidebar = () => {
     navigate("/login", { replace: true });
   };
 
-  const drawer = (
-    <div style={{ color: "#11596F" }}>
-      <Toolbar>
-        <ListItemButton sx={{ maxWidth: "10rem" }} onClick={logOut}>
-          <ListItemIcon>
-            <LogoutIcon />
-          </ListItemIcon>
-          <ListItemText primary="ログアウト"></ListItemText>
-        </ListItemButton>
+  const renderNav = (isCollapsedRail) => (
+    <div>
+      <Toolbar
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: isCollapsedRail ? "center" : "space-between",
+          gap: 1.5,
+          py: 1,
+        }}
+      >
+        {!isCollapsedRail && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 1,
+                bgcolor: theme.palette.primary.main,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 64 64" fill="none">
+                <path
+                  d="M14 24 H34 M34 24 L28 18 M34 24 L28 30"
+                  stroke={theme.palette.secondary.main}
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M50 40 H30 M30 40 L36 34 M30 40 L36 46"
+                  stroke="#fff"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Box>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, color: theme.palette.primary.main, lineHeight: 1.25 }}
+            >
+              受注・仕入
+              <br />
+              業務管理システム
+            </Typography>
+          </Box>
+        )}
+        {isCollapsedRail && (
+          <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+            受
+          </Avatar>
+        )}
+        {!isCollapsedRail && (
+          <IconButton
+            size="small"
+            onClick={() => setCollapsed(true)}
+            sx={{ display: { xs: "none", sm: "inline-flex" }, flexShrink: 0 }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+        )}
       </Toolbar>
       <Divider />
-      <List>
-        <ListItemButton
-          onClick={() => handleClick("Customer")}
-          selected={activeKey === "Customer"}
-          sx={hoverButton}
-        >
-          <ListItemIcon>
-            <BusinessIcon />
-          </ListItemIcon>
-          <ListItemText primary="顧客情報管理"></ListItemText>
-        </ListItemButton>
-      </List>
+      {isCollapsedRail && (
+        <Box sx={{ display: { xs: "none", sm: "flex" }, justifyContent: "center", py: 0.5 }}>
+          <IconButton size="small" onClick={() => setCollapsed(false)}>
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+      )}
       {/* 案件管理 — ẩn theo yêu cầu, giữ code để bật lại sau này
-      <List>
+      <List disablePadding>
         <ListItemButton onClick={() => handleClick("Case")} sx={hoverButton}>
           <ListItemIcon>
             <BusinessCenterIcon />
@@ -274,8 +379,8 @@ const Sidebar = () => {
             disablePadding
             sx={{
               ml: "20px",
-              borderLeft: "3px solid #cfe0e6",
-              backgroundColor: "rgba(17, 89, 111, 0.03)",
+              borderLeft: `3px solid ${theme.palette.divider}`,
+              backgroundColor: "rgba(31, 58, 95, 0.03)",
             }}
           >
             <ListItemButton
@@ -300,378 +405,226 @@ const Sidebar = () => {
         </Collapse>
       </List>
       */}
-      <List>
-        <ListItemButton
-          sx={hoverButton}
-          selected={activeKey === "Product Management"}
-          onClick={() => handleClick("Product Management")}
-        >
-          <ListItemIcon>
-            <Inventory2Icon />
-          </ListItemIcon>
-          <ListItemText primary="商品・在庫管理"></ListItemText>
-        </ListItemButton>
-      </List>
-      <List>
-        <ListItemButton onClick={() => handleClick("Order")} sx={hoverButton}>
-          <ListItemIcon>
-            <ShoppingCartIcon />
-          </ListItemIcon>
-          <ListItemText primary="受注管理"></ListItemText>
-          {orderOpen ? <ExpandLess /> : <ExpandMore />}
-        </ListItemButton>
-        <Collapse in={orderOpen} timeout="auto" unmountOnExit>
-          <List
-            component="div"
-            disablePadding
-            sx={{
-              ml: "20px",
-              borderLeft: "3px solid #cfe0e6",
-              backgroundColor: "rgba(17, 89, 111, 0.03)",
-            }}
-          >
+      {NAV_GROUPS.map((group) => (
+        <List key={group.key} disablePadding>
+          <Tooltip title={isCollapsedRail ? group.label : ""} placement="right">
             <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Search Order"}
-              onClick={() => handleClick("Search Order")}
+              ref={(el) => (groupRefs.current[group.key] = el)}
+              onClick={() => handleGroupClick(group.key, isCollapsedRail)}
+              sx={{ ...hoverButton, justifyContent: isCollapsedRail ? "center" : "flex-start" }}
             >
-              <ListItemIcon>
-                <SearchIcon />
+              <ListItemIcon sx={{ minWidth: isCollapsedRail ? 0 : 40 }}>
+                {group.icon}
               </ListItemIcon>
-              <ListItemText primary="受注検索" />
+              {!isCollapsedRail && <ListItemText primary={group.label} />}
+              {!isCollapsedRail && (groupOpen[group.key] ? <ExpandLess /> : <ExpandMore />)}
             </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Create Order"}
-              onClick={() => handleClick("Create Order")}
+          </Tooltip>
+          <Collapse in={!isCollapsedRail && groupOpen[group.key]} timeout="auto" unmountOnExit>
+            <List
+              component="div"
+              disablePadding
+              sx={{
+                ml: "20px",
+                borderLeft: `3px solid ${theme.palette.divider}`,
+                backgroundColor: "rgba(31, 58, 95, 0.03)",
+              }}
             >
-              <ListItemIcon>
-                <PlaylistAddIcon />
-              </ListItemIcon>
-              <ListItemText primary="受注登録" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Upload Order"}
-              onClick={() => handleClick("Upload Order")}
-            >
-              <ListItemIcon>
-                <DocumentScannerIcon />
-              </ListItemIcon>
-              <ListItemText primary="受注アップロード（AI）" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Invoice Management"}
-              onClick={() => handleClick("Invoice Management")}
-            >
-              <ListItemIcon>
-                <ReceiptLongIcon />
-              </ListItemIcon>
-              <ListItemText primary="受注請求書管理" />
-            </ListItemButton>
-          </List>
-        </Collapse>
-      </List>
-      <List>
-        <ListItemButton onClick={() => handleClick("Supplier")} sx={hoverButton}>
-          <ListItemIcon>
-            <LocalShippingIcon />
-          </ListItemIcon>
-          <ListItemText primary="仕入れ管理"></ListItemText>
-          {supplierOpen ? <ExpandLess /> : <ExpandMore />}
-        </ListItemButton>
-        <Collapse in={supplierOpen} timeout="auto" unmountOnExit>
-          <List
-            component="div"
-            disablePadding
-            sx={{
-              ml: "20px",
-              borderLeft: "3px solid #cfe0e6",
-              backgroundColor: "rgba(17, 89, 111, 0.03)",
-            }}
-          >
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Search Supplier"}
-              onClick={() => handleClick("Search Supplier")}
-            >
-              <ListItemIcon>
-                <SearchIcon />
-              </ListItemIcon>
-              <ListItemText primary="仕入先検索/登録" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Search Purchase Order"}
-              onClick={() => handleClick("Search Purchase Order")}
-            >
-              <ListItemIcon>
-                <SearchIcon />
-              </ListItemIcon>
-              <ListItemText primary="発注検索/登録" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Upload Purchase Order"}
-              onClick={() => handleClick("Upload Purchase Order")}
-            >
-              <ListItemIcon>
-                <DocumentScannerIcon />
-              </ListItemIcon>
-              <ListItemText primary="発注アップロード（AI）" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Search Goods Receipt"}
-              onClick={() => handleClick("Search Goods Receipt")}
-            >
-              <ListItemIcon>
-                <SearchIcon />
-              </ListItemIcon>
-              <ListItemText primary="入荷検索/登録" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Upload Goods Receipt"}
-              onClick={() => handleClick("Upload Goods Receipt")}
-            >
-              <ListItemIcon>
-                <DocumentScannerIcon />
-              </ListItemIcon>
-              <ListItemText primary="入荷アップロード（AI）" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Reorder Suggestions"}
-              onClick={() => handleClick("Reorder Suggestions")}
-            >
-              <ListItemIcon>
-                <TipsAndUpdatesIcon />
-              </ListItemIcon>
-              <ListItemText primary="発注提案" />
-            </ListItemButton>
-            <ListItemButton
-              sx={hoverChildButton}
-              selected={activeKey === "Purchase Invoice Management"}
-              onClick={() => handleClick("Purchase Invoice Management")}
-            >
-              <ListItemIcon>
-                <ReceiptLongIcon />
-              </ListItemIcon>
-              <ListItemText primary="仕入請求書管理" />
-            </ListItemButton>
-          </List>
-        </Collapse>
-      </List>
-      <List>
-        <ListItemButton
-          sx={hoverButton}
-          selected={activeKey === "Sales Dashboard"}
-          onClick={() => handleClick("Sales Dashboard")}
-        >
-          <ListItemIcon>
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText primary="経営ダッシュボード"></ListItemText>
-        </ListItemButton>
-      </List>
-      <List>
-        <ListItemButton
-          sx={hoverButton}
-          selected={activeKey === "Document Search"}
-          onClick={() => handleClick("Document Search")}
-        >
-          <ListItemIcon>
-            <SearchIcon />
-          </ListItemIcon>
-          <ListItemText primary="書類管理"></ListItemText>
-        </ListItemButton>
-      </List>
-      <List>
-        <ListItemButton
-          sx={hoverButton}
-          selected={activeKey === "Chat Assistant"}
-          onClick={() => handleClick("Chat Assistant")}
-        >
-          <ListItemIcon>
-            <SmartToyIcon />
-          </ListItemIcon>
-          <ListItemText primary="AIチャット"></ListItemText>
-        </ListItemButton>
-      </List>
+              {group.items.map((item) => (
+                <ListItemButton
+                  key={item.key}
+                  sx={hoverChildButton}
+                  selected={activeKey === item.key}
+                  onClick={() => handleClick(item.key)}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              ))}
+            </List>
+          </Collapse>
+        </List>
+      ))}
       {isSuperAdmin && (
         <>
           <Divider sx={{ mt: 1 }} />
-          <Typography
-            variant="caption"
-            sx={{
-              display: "block",
-              pl: 2,
-              pt: 1.5,
-              pb: 0.5,
-              color: "#8a97a0",
-              letterSpacing: "0.08em",
-              fontWeight: 700,
-            }}
-          >
-            設定
-          </Typography>
-          <List>
-            <ListItemButton
-              sx={hoverButton}
-              onClick={() => navigate("/admin/templates")}
+          {!isCollapsedRail && (
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                pl: 2,
+                pt: 1.5,
+                pb: 0.5,
+                color: theme.palette.text.secondary,
+                letterSpacing: "0.08em",
+                fontWeight: 700,
+              }}
             >
-              <ListItemIcon>
-                <SettingsIcon />
-              </ListItemIcon>
-              <ListItemText primary="テンプレート管理"></ListItemText>
-            </ListItemButton>
+              設定
+            </Typography>
+          )}
+          <List disablePadding>
+            <Tooltip title={isCollapsedRail ? "テンプレート管理" : ""} placement="right">
+              <ListItemButton
+                sx={{ ...hoverButton, justifyContent: isCollapsedRail ? "center" : "flex-start" }}
+                onClick={() => navigate("/admin/templates")}
+              >
+                <ListItemIcon sx={{ minWidth: isCollapsedRail ? 0 : 40 }}>
+                  <SettingsIcon />
+                </ListItemIcon>
+                {!isCollapsedRail && <ListItemText primary="テンプレート管理" />}
+              </ListItemButton>
+            </Tooltip>
           </List>
-          <List>
-            <ListItemButton
-              sx={hoverButton}
-              onClick={() => navigate("/admin/users")}
-            >
-              <ListItemIcon>
-                <PeopleIcon />
-              </ListItemIcon>
-              <ListItemText primary="ユーザー管理"></ListItemText>
-            </ListItemButton>
+          <List disablePadding>
+            <Tooltip title={isCollapsedRail ? "ユーザー管理" : ""} placement="right">
+              <ListItemButton
+                sx={{ ...hoverButton, justifyContent: isCollapsedRail ? "center" : "flex-start" }}
+                onClick={() => navigate("/admin/users")}
+              >
+                <ListItemIcon sx={{ minWidth: isCollapsedRail ? 0 : 40 }}>
+                  <PeopleIcon />
+                </ListItemIcon>
+                {!isCollapsedRail && <ListItemText primary="ユーザー管理" />}
+              </ListItemButton>
+            </Tooltip>
           </List>
         </>
       )}
-      {/* Footer (System Name) */}
-      <div
-        className="version-info"
-        style={{
-          padding: "12px 0px",
-          borderTop: "1px solid #ccc",
-          backgroundColor: AI_ACCENT_SOFT,
-          textAlign: "center",
-          color: AI_ACCENT_COLOR,
-          fontWeight: "bold",
-          fontSize: "1rem",
-        }}
-      >
-        受注管理システム
-      </div>
     </div>
   );
 
   return (
-    <ThemeProvider theme={theme}>
-      <Box sx={{ display: "flex", width: "100%", minHeight: "100vh" }}>
-        <AppBar
-          position="fixed"
-          sx={{
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
-            ml: { sm: `${drawerWidth}px` },
-          }}
-        >
-          <Toolbar sx={{ color: "#11596f", backgroundColor: "#fff" }}>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: "none" } }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              variant="subtitle1"
-              component="div"
-              sx={{
-                flexGrow: 1,
-                fontWeight: 500,
-                color: "#5b6b73",
+    <Box sx={{ display: "flex", width: "100%", minHeight: "100vh" }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: `calc(100% - ${collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED}px)` },
+          ml: { sm: `${collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED}px` },
+          transition: theme.transitions.create(["width", "margin"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { sm: "none" } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography
+            variant="subtitle1"
+            component="div"
+            sx={{ flexGrow: 1, fontWeight: 500 }}
+          >
+            {header}
+          </Typography>
+          <IconButton onClick={(e) => setUserMenuAnchor(e.currentTarget)} size="small">
+            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+              {auth?.username?.[0]?.toUpperCase() || "U"}
+            </Avatar>
+          </IconButton>
+          <Menu
+            anchorEl={userMenuAnchor}
+            open={Boolean(userMenuAnchor)}
+            onClose={() => setUserMenuAnchor(null)}
+          >
+            <MenuItem disabled>{auth?.username}</MenuItem>
+            <Divider />
+            <MenuItem
+              onClick={() => {
+                setUserMenuAnchor(null);
+                logOut();
               }}
             >
-              {header}
-            </Typography>
-          </Toolbar>
-        </AppBar>
-        <Box
-          component="nav"
-          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-          aria-label="mailbox folders"
-        >
-          {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true, // Better open performance on mobile.
-            }}
-            sx={{
-              display: { xs: "block", sm: "none" },
-              "& .MuiDrawer-paper": {
-                boxSizing: "border-box",
-                width: drawerWidth,
-              },
-            }}
-          >
-            {drawer}
-          </Drawer>
-          <Drawer
-            variant="permanent"
-            sx={{
-              display: { xs: "none", sm: "block" },
-              "& .MuiDrawer-paper": {
-                boxSizing: "border-box",
-                width: drawerWidth,
-              },
-            }}
-            open
-          >
-            {drawer}
-          </Drawer>
-          <Box
-            onMouseDown={handleResizeStart}
-            sx={{
-              display: { xs: "none", sm: "block" },
-              position: "fixed",
-              top: 0,
-              left: drawerWidth - 3,
-              width: "6px",
-              height: "100vh",
-              cursor: "col-resize",
-              zIndex: (t) => t.zIndex.drawer + 1,
-              "&:hover": { backgroundColor: "rgba(17, 89, 111, 0.3)" },
-            }}
-          />
-        </Box>
-        <Box
-          component="main"
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              ログアウト
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+      <Box
+        component="nav"
+        sx={{
+          width: { sm: collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED },
+          flexShrink: { sm: 0 },
+        }}
+        aria-label="mailbox folders"
+      >
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{
+            keepMounted: true, // Better open performance on mobile.
+          }}
           sx={{
-            flexGrow: 1,
-            mt: "140px",
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            display: { xs: "block", sm: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: DRAWER_WIDTH_EXPANDED,
+            },
           }}
         >
-          {header === "顧客情報の検索" && <CustomerSearch />}
-          {header === "案件の検索" && <CaseSearch />}
-          {header === "案件情報" && <CaseDetail caseId={caseId} />}
-          {header === "書類管理" && <DocumentSearch />}
-          {header === "受注検索" && <OrderSearch />}
-          {header === "受注登録" && <OrderDetail orderId={undefined} />}
-          {header === "受注アップロード（AI読み取り）" && <OrderIntakeUpload />}
-          {header === "商品・在庫管理" && <ProductSearch />}
-          {header === "仕入先検索" && <SupplierSearch />}
-          {header === "発注検索" && <PurchaseOrderSearch />}
-          {header === "発注アップロード（AI）" && <PurchaseOrderIntakeUpload />}
-          {header === "入荷検索" && <GoodsReceiptSearch />}
-          {header === "入荷アップロード（AI）" && <GoodsReceiptIntakeUpload />}
-          {header === "発注提案" && <ReorderSuggestions />}
-          {header === "仕入請求書管理" && <PurchaseInvoiceSearch />}
-          {header === "受注請求書管理" && <InvoiceSearch />}
-          {header === "経営ダッシュボード" && <SalesDashboard />}
-          {header === "AIチャット" && <ChatAssistant />}
-        </Box>
+          {renderNav(false)}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", sm: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED,
+              overflowX: "hidden",
+              transition: theme.transitions.create("width", {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            },
+          }}
+          open
+        >
+          {renderNav(collapsed)}
+        </Drawer>
       </Box>
-    </ThemeProvider>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: {
+            sm: `calc(100% - ${collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH_EXPANDED}px)`,
+          },
+        }}
+      >
+        <Toolbar />
+        {header === "顧客情報の検索" && <CustomerSearch />}
+        {header === "案件の検索" && <CaseSearch />}
+        {header === "案件情報" && <CaseDetail caseId={caseId} />}
+        {header === "書類管理" && <DocumentSearch />}
+        {header === "受注検索" && <OrderSearch />}
+        {header === "受注登録" && <OrderDetail orderId={undefined} />}
+        {header === "受注アップロード（AI読み取り）" && <OrderIntakeUpload />}
+        {header === "商品・在庫管理" && <ProductSearch />}
+        {header === "仕入先検索" && <SupplierSearch />}
+        {header === "発注検索" && <PurchaseOrderSearch />}
+        {header === "発注アップロード（AI）" && <PurchaseOrderIntakeUpload />}
+        {header === "入荷検索" && <GoodsReceiptSearch />}
+        {header === "入荷アップロード（AI）" && <GoodsReceiptIntakeUpload />}
+        {header === "発注提案" && <ReorderSuggestions />}
+        {header === "仕入請求書管理" && <PurchaseInvoiceSearch />}
+        {header === "受注請求書管理" && <InvoiceSearch />}
+        {header === "経営ダッシュボード" && <SalesDashboard />}
+        {header === "AIチャット" && <ChatAssistant />}
+      </Box>
+    </Box>
   );
 };
 

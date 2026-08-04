@@ -436,7 +436,7 @@ const DocumentSearch = () => {
                           {item.isImage && (
                             <Button
                               variant="contained"
-                              color="success"
+                              color="primary"
                               to=""
                               startIcon={<Icons.Image />}
                               style={{ marginRight: "5px" }}
@@ -450,7 +450,7 @@ const DocumentSearch = () => {
                           )}
                           <Button
                             variant="contained"
-                            color="success"
+                            color="primary"
                             to=""
                             startIcon={<Icons.Download />}
                             style={{ marginRight: "5px" }}
@@ -462,7 +462,7 @@ const DocumentSearch = () => {
                           </Button>
                           <Button
                             variant="contained"
-                            color="success"
+                            color="error"
                             startIcon={<Icons.Delete />}
                             to=""
                             onClick={() => {
@@ -698,7 +698,7 @@ const DocumentSearch = () => {
                 style={{
                   width: "100%",
                   marginTop: "10px",
-                  border: "3px solid #11596F",
+                  border: "3px solid #1F3A5F",
                 }}
               />
             </Grid>

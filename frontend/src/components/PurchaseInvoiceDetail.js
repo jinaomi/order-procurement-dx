@@ -7,6 +7,7 @@ import FormSnackbar from "./until/FormSnackbar";
 import DialogHandle from "./until/DialogHandle";
 import AttachedFilesList from "./until/AttachedFilesList";
 import CustomFieldsSection from "./until/CustomFieldsSection";
+import FormSection from "./until/FormSection";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import purchaseInvoiceService from "../services/purchaseInvoiceService";
 import purchaseOrderService from "../services/purchaseOrderService";
@@ -179,6 +180,8 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
     return (
       <section className="purchase-invoice">
         {viewData && (
+          <>
+          <FormSection title="仕入請求書情報">
           <Grid container columnSpacing={5} rowSpacing={3}>
             <Grid item xs={12}>
               <b>仕入請求書番号：</b> {viewData.purchaseInvoiceNumber} &nbsp;&nbsp;
@@ -228,22 +231,22 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
                   ))}
               </>
             )}
-            <Grid item xs={12}>
-              <div className="handle-button">
-                {viewData.status !== "Paid" && (
-                  <FormButton itemName="支払い確認" onClick={handleMarkPaid} />
-                )}
-                <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />
-              </div>
-            </Grid>
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="PurchaseInvoice"
-                entityId={purchaseInvoiceId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
           </Grid>
+          </FormSection>
+          <div className="handle-button">
+            {viewData.status !== "Paid" && (
+              <FormButton itemName="支払い確認" onClick={handleMarkPaid} sx={{ width: "auto", minWidth: 160 }} />
+            )}
+            <FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} sx={{ width: "auto", minWidth: 160 }} />
+          </div>
+          <FormSection>
+            <AttachedFilesList
+              entityType="PurchaseInvoice"
+              entityId={purchaseInvoiceId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+          </>
         )}
         <DialogHandle
           open={showAttachDialog}
@@ -263,14 +266,17 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
   return (
     <section className="purchase-invoice">
       <form onSubmit={onSubmit}>
+        {createdId && (
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} sx={{ width: "auto" }} />}
+          >
+            仕入請求書を登録しました。請求書の写真などを添付できます。
+          </Alert>
+        )}
+        <FormSection title="仕入請求書登録">
         <Grid container columnSpacing={5} rowSpacing={3}>
-          {createdId && (
-            <Grid item xs={12}>
-              <Alert severity="success" action={<FormButton itemName="関連書類の添付" buttonType="attach" onClick={handleAttach} />}>
-                仕入請求書を登録しました。請求書の写真などを添付できます。
-              </Alert>
-            </Grid>
-          )}
           <Grid item xs={6}>
             <div className="section-item">
               <label className="section-label">
@@ -336,21 +342,20 @@ const PurchaseInvoiceDetail = ({ purchaseInvoiceId }) => {
             values={customFieldValues}
             onChange={setCustomFieldValues}
           />
-          <Grid item xs={12}>
-            <div className="handle-button">
-              <FormButton itemName="登録" type="submit" />
-            </div>
-          </Grid>
-          {createdId && (
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="PurchaseInvoice"
-                entityId={createdId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
-          )}
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="登録" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+        </div>
+        {createdId && (
+          <FormSection>
+            <AttachedFilesList
+              entityType="PurchaseInvoice"
+              entityId={createdId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+        )}
       </form>
       <DialogHandle
         open={showAttachDialog}

@@ -244,7 +244,7 @@ const CustomerSearch = () => {
                       <TableCell style={{ textAlign: "center" }}>
                         <Button
                           variant="contained"
-                          color="success"
+                          color="primary"
                           startIcon={<Icons.Edit />}
                           onClick={() => handleClickEdit(item.id)}
                           style={{ margin: "1px 5px" }}
@@ -254,7 +254,7 @@ const CustomerSearch = () => {
 
                         <Button
                           variant="contained"
-                          color="success"
+                          color="error"
                           startIcon={<Icons.Delete />}
                           style={{ margin: "1px 5px" }}
                           onClick={() => {

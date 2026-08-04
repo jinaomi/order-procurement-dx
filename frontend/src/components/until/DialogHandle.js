@@ -372,7 +372,8 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId, entity
                       >
                         {item.isImage && (
                           <Button
-                            className="search-delete"
+                            color="primary"
+                            variant="outlined"
                             onClick={async () => {
                               await viewOrDownloadFile(item, "view");
                             }}
@@ -384,7 +385,8 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId, entity
                         )}
                         <Button
                           startIcon={<Icons.Download />}
-                          className="search-edit"
+                          color="primary"
+                          variant="outlined"
                           onClick={async () => {
                             await viewOrDownloadFile(item, "download");
                           }}
@@ -393,7 +395,8 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId, entity
                         </Button>
                         <Button
                           startIcon={<Icons.Delete />}
-                          className="search-edit"
+                          color="error"
+                          variant="outlined"
                           onClick={() => {
                             setFileDelete(item);
                             setShowAlert(true);
@@ -438,7 +441,7 @@ const DialogHandle = ({ title, open, closeDialog, optionFileType, caseId, entity
                   style={{
                     width: "100%",
                     marginTop: "10px",
-                    border: "3px solid #11596F",
+                    border: "3px solid #1F3A5F",
                   }}
                 />
               </Grid>

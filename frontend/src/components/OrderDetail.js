@@ -4,6 +4,7 @@ import FormSelection from "./until/FormSelection";
 import CustomFieldsSection from "./until/CustomFieldsSection";
 import DialogHandle from "./until/DialogHandle";
 import AttachedFilesList from "./until/AttachedFilesList";
+import FormSection from "./until/FormSection";
 import { Grid, Table, TableBody, TableCell, TableHead, TableRow, IconButton } from "@mui/material";
 import FormButton from "./until/FormButton";
 import FormSnackbar from "./until/FormSnackbar";
@@ -382,46 +383,49 @@ const OrderDetail = ({ orderId }) => {
   return (
     <section className="order">
       <form onSubmit={onSubmit}>
-        <Grid container columnSpacing={5} rowSpacing={3}>
-          {orderInfo && (
-            <Grid item xs={12}>
-              <b>受注番号：</b> {orderInfo.orderNumber} &nbsp;&nbsp;
-              <b>ステータス：</b>{" "}
-              <Chip
-                label={statusLabel[orderInfo.status] || orderInfo.status}
-                color={statusColor[orderInfo.status] || "default"}
-                size="small"
-              />
-              <div style={{ marginTop: 10 }}>
-                {invoiceInfo ? (
-                  <>
-                    <span style={{ marginRight: 10 }}>
-                      請求書番号: <b>{invoiceInfo.invoiceNumber}</b>（{invoiceStatusLabel[invoiceInfo.status] || invoiceInfo.status}）
-                    </span>
-                    <FormButton
-                      itemName="請求書PDFダウンロード"
-                      onClick={handleDownloadInvoice}
-                      buttonType="attach"
-                    />
-                  </>
-                ) : orderInfo.status === "Confirmed" ? (
-                  <FormButton itemName="請求書作成" onClick={handleCreateInvoice} />
-                ) : orderInfo.status === "RiskFlagged" ? (
-                  <span style={{ color: "#b26a00" }}>
-                    在庫/生産能力の不足が疑われる受注です。請求書を発行する前にご確認ください。
+        {orderInfo && (
+          <FormSection title="ステータス">
+            <b>受注番号：</b> {orderInfo.orderNumber} &nbsp;&nbsp;
+            <b>ステータス：</b>{" "}
+            <Chip
+              label={statusLabel[orderInfo.status] || orderInfo.status}
+              color={statusColor[orderInfo.status] || "default"}
+              size="small"
+            />
+            <div style={{ marginTop: 10 }}>
+              {invoiceInfo ? (
+                <>
+                  <span style={{ marginRight: 10 }}>
+                    請求書番号: <b>{invoiceInfo.invoiceNumber}</b>（{invoiceStatusLabel[invoiceInfo.status] || invoiceInfo.status}）
                   </span>
-                ) : null}
-                {dataId && (
                   <FormButton
-                    itemName="再照合（AI）"
-                    onClick={handleRunMatching}
-                    buttonType="cancel"
-                    style={{ marginLeft: 10 }}
+                    itemName="請求書PDFダウンロード"
+                    onClick={handleDownloadInvoice}
+                    buttonType="attach"
+                    sx={{ width: "auto" }}
                   />
-                )}
-              </div>
-            </Grid>
-          )}
+                </>
+              ) : orderInfo.status === "Confirmed" ? (
+                <FormButton itemName="請求書作成" onClick={handleCreateInvoice} sx={{ width: "auto" }} />
+              ) : orderInfo.status === "RiskFlagged" ? (
+                <span style={{ color: "#b26a00" }}>
+                  在庫/生産能力の不足が疑われる受注です。請求書を発行する前にご確認ください。
+                </span>
+              ) : null}
+              {dataId && (
+                <FormButton
+                  itemName="再照合（AI）"
+                  onClick={handleRunMatching}
+                  buttonType="secondaryAction"
+                  sx={{ width: "auto" }}
+                  style={{ marginLeft: 10 }}
+                />
+              )}
+            </div>
+          </FormSection>
+        )}
+        <FormSection title="受注情報">
+        <Grid container columnSpacing={5} rowSpacing={3}>
           <Grid item xs={6}>
             <div className="section-item">
               <label className="section-label">
@@ -580,29 +584,34 @@ const OrderDetail = ({ orderId }) => {
               ></textarea>
             </div>
           </Grid>
-          <Grid item xs={12}>
-            <div className="handle-button">
-              <FormButton itemName="保存" type="submit" />
-              <FormButton itemName="新規作成" onClick={handleClear} />
-              <FormButton
-                itemName="関連書類の添付"
-                buttonType="attach"
-                titleContent={!dataId ? "受注を保存してから書類の添付や管理が行えます。" : ""}
-                onClick={handleAttach}
-                disabled={!dataId}
-              />
-            </div>
-          </Grid>
-          {dataId && (
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="Order"
-                entityId={dataId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
-          )}
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="保存" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+          <FormButton
+            itemName="新規作成"
+            buttonType="secondaryAction"
+            onClick={handleClear}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+          <FormButton
+            itemName="関連書類の添付"
+            buttonType="attach"
+            titleContent={!dataId ? "受注を保存してから書類の添付や管理が行えます。" : ""}
+            onClick={handleAttach}
+            disabled={!dataId}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+        </div>
+        {dataId && (
+          <FormSection>
+            <AttachedFilesList
+              entityType="Order"
+              entityId={dataId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+        )}
       </form>
       <DialogHandle
         open={showAttachDialog}

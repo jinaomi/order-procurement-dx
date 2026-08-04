@@ -199,7 +199,7 @@ const InvoiceSearch = () => {
                     <TableCell style={{ textAlign: "center" }}>
                       <Button
                         variant="contained"
-                        color="success"
+                        color="primary"
                         startIcon={<Icons.Download />}
                         onClick={() => handleDownload(item)}
                         style={{ margin: "1px 5px" }}

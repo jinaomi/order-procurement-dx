@@ -192,7 +192,7 @@ const ReorderSuggestions = () => {
                           {aiApplicable && (
                             <Button
                               variant="contained"
-                              color="success"
+                              color="primary"
                               onClick={() => handleCreatePurchaseOrder(item)}
                               style={{ margin: "1px 5px" }}
                             >

@@ -124,7 +124,8 @@ const AttachedFilesList = ({ entityType, entityId, refreshToken }) => {
                 {item.isImage && (
                   <Button
                     startIcon={<Icons.Image />}
-                    className="search-edit"
+                    color="primary"
+                    variant="outlined"
                     onClick={() => viewOrDownloadFile(item, "view")}
                   >
                     表示
@@ -132,14 +133,16 @@ const AttachedFilesList = ({ entityType, entityId, refreshToken }) => {
                 )}
                 <Button
                   startIcon={<Icons.Download />}
-                  className="search-edit"
+                  color="primary"
+                  variant="outlined"
                   onClick={() => viewOrDownloadFile(item, "download")}
                 >
                   ダウンロード
                 </Button>
                 <Button
                   startIcon={<Icons.Delete />}
-                  className="search-edit"
+                  color="error"
+                  variant="outlined"
                   onClick={() => {
                     setFileDelete(item);
                     setShowAlert(true);
@@ -164,7 +167,7 @@ const AttachedFilesList = ({ entityType, entityId, refreshToken }) => {
             <img
               src={urlPreviewImg.blobUrl}
               alt={urlPreviewImg.fileName}
-              style={{ width: "100%", marginTop: "10px", border: "3px solid #11596F" }}
+              style={{ width: "100%", marginTop: "10px", border: "3px solid #1F3A5F" }}
             />
           </Grid>
         </ContentDialog>

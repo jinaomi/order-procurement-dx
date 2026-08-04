@@ -1,4 +1,4 @@
-import { Grid, Divider, Chip } from "@mui/material";
+import { Grid, Divider, Typography } from "@mui/material";
 import GenericItems from "./GenericItems";
 
 const CustomFieldsSection = ({ fields, values, onChange, title = "カスタム項目" }) => {
@@ -27,9 +27,10 @@ const CustomFieldsSection = ({ fields, values, onChange, title = "カスタム�
 
   return (
     <Grid item xs={12}>
-      <Divider sx={{ my: 2 }}>
-        <Chip label={title} size="small" variant="outlined" />
-      </Divider>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main", mb: 1 }}>
+        {title}
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
       <Grid container columnSpacing={5} rowSpacing={3}>
         {sortedFields.map((field) => (
           <Grid

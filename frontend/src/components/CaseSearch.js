@@ -304,7 +304,7 @@ const CaseSearch = () => {
                             <>
                               <Button
                                 variant="contained"
-                                color="success"
+                                color="primary"
                                 startIcon={<Icons.Edit />}
                                 onClick={() => {
                                   handleClickEdit(row.caseId);
@@ -315,7 +315,7 @@ const CaseSearch = () => {
                               </Button>
                               <Button
                                 variant="contained"
-                                color="success"
+                                color="error"
                                 startIcon={<Icons.Delete />}
                                 onClick={() => {
                                   setShowAlert(true);

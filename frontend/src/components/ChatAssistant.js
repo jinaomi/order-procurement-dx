@@ -10,14 +10,13 @@ import {
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PersonIcon from "@mui/icons-material/Person";
+import { useTheme } from "@mui/material/styles";
 import useAxiosPrivate from "../hooks/useAxiosPrivate";
 import chatService from "../services/chatService";
 import "../styles/styles.css";
 
-const AI_ACCENT_COLOR = "#b85a25";
-const AI_ACCENT_SOFT = "#f2e3d6";
-
 const ChatAssistant = () => {
+  const theme = useTheme();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,8 +82,8 @@ const ChatAssistant = () => {
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
-                backgroundColor: m.role === "user" ? "#11596F" : AI_ACCENT_SOFT,
-                color: m.role === "user" ? "#fff" : AI_ACCENT_COLOR,
+                backgroundColor: m.role === "user" ? theme.palette.primary.main : theme.palette.secondary.light,
+                color: m.role === "user" ? "#fff" : theme.palette.secondary.main,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -98,7 +97,7 @@ const ChatAssistant = () => {
               sx={{
                 p: 1.5,
                 maxWidth: "75%",
-                backgroundColor: m.role === "user" ? "#11596F" : "#f5f5f5",
+                backgroundColor: m.role === "user" ? theme.palette.primary.main : "#f5f5f5",
                 color: m.role === "user" ? "#fff" : "inherit",
                 whiteSpace: "pre-wrap",
               }}
@@ -114,8 +113,8 @@ const ChatAssistant = () => {
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
-                backgroundColor: AI_ACCENT_SOFT,
-                color: AI_ACCENT_COLOR,
+                backgroundColor: theme.palette.secondary.light,
+                color: theme.palette.secondary.main,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

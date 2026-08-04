@@ -5,6 +5,7 @@ import CustomFieldsSection from "./until/CustomFieldsSection";
 import DialogHandle from "./until/DialogHandle";
 import ContentDialog from "./until/ContentDialog";
 import AttachedFilesList from "./until/AttachedFilesList";
+import FormSection from "./until/FormSection";
 import PurchaseInvoiceDetail from "./PurchaseInvoiceDetail";
 import {
   Grid,
@@ -364,180 +365,185 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
   return (
     <section className="purchase-order">
       <form onSubmit={onSubmit}>
-        <Grid container columnSpacing={5} rowSpacing={3}>
-          {purchaseOrderInfo && (
-            <Grid item xs={12}>
-              <b>発注番号：</b> {purchaseOrderInfo.purchaseOrderNumber} &nbsp;&nbsp;
-              <b>ステータス：</b>{" "}
-              <Chip
-                label={statusLabel[purchaseOrderInfo.status] || purchaseOrderInfo.status}
-                color={statusColor[purchaseOrderInfo.status] || "default"}
-                size="small"
-              />
-            </Grid>
-          )}
-          {reconciliation && (
-            <Grid item xs={12}>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                <b>対応状況：</b>
-                <Chip label="発注済み" color="success" size="small" />
+        {(purchaseOrderInfo || reconciliation) && (
+          <FormSection title="ステータス・対応状況">
+            {purchaseOrderInfo && (
+              <div style={{ marginBottom: reconciliation ? 16 : 0 }}>
+                <b>発注番号：</b> {purchaseOrderInfo.purchaseOrderNumber} &nbsp;&nbsp;
+                <b>ステータス：</b>{" "}
                 <Chip
-                  label={
-                    reconciliation.isFullyReceived
-                      ? "入荷済み（全部）"
-                      : reconciliation.isPartiallyReceived
-                      ? "入荷済み（一部）"
-                      : "未入荷"
-                  }
-                  color={
-                    reconciliation.isFullyReceived
-                      ? "success"
-                      : reconciliation.isPartiallyReceived
-                      ? "warning"
-                      : "default"
-                  }
-                  size="small"
-                />
-                <Chip
-                  label={reconciliation.isInvoiceReceived ? "請求受領済み" : "請求未受領"}
-                  color={reconciliation.isInvoiceReceived ? "success" : "default"}
-                  size="small"
-                />
-                <Chip
-                  label={reconciliation.isFullyPaid ? "支払済み" : "未払い"}
-                  color={reconciliation.isFullyPaid ? "success" : "default"}
+                  label={statusLabel[purchaseOrderInfo.status] || purchaseOrderInfo.status}
+                  color={statusColor[purchaseOrderInfo.status] || "default"}
                   size="small"
                 />
               </div>
-              {reconciliation.hasAmountMismatch && (
-                <>
-                  <Alert severity="warning" style={{ marginTop: 10 }}>
-                    発注金額（¥{reconciliation.orderedTotalAmount.toLocaleString()}）に対し、請求金額の合計は¥
-                    {reconciliation.invoicedTotalAmount.toLocaleString()}で、¥
-                    {Math.abs(
-                      reconciliation.invoicedTotalAmount - reconciliation.orderedTotalAmount
-                    ).toLocaleString()}
-                    {reconciliation.invoicedTotalAmount > reconciliation.orderedTotalAmount
-                      ? "超過"
-                      : "不足"}
-                    しています。下記の請求書をご確認ください。
-                  </Alert>
-                  <Table size="small" style={{ marginTop: 10 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>請求書番号</TableCell>
-                        <TableCell style={{ textAlign: "right" }}>金額</TableCell>
-                        <TableCell>ステータス</TableCell>
-                        <TableCell>操作</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {reconciliation.invoices.map((inv) => (
-                        <TableRow key={inv.id}>
-                          <TableCell>{inv.purchaseInvoiceNumber}</TableCell>
-                          <TableCell style={{ textAlign: "right" }}>
-                            ¥{inv.totalAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={inv.status === "Paid" ? "支払済み" : "未払い"}
-                              color={inv.status === "Paid" ? "success" : "default"}
-                              size="small"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="success"
-                              startIcon={<Icons.Visibility />}
-                              onClick={() => handleOpenInvoice(inv.id)}
-                            >
-                              詳細
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </>
-              )}
-            </Grid>
-          )}
-          {dataId && (
-            <Grid item xs={12}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <b>発注書発行・送付履歴：</b>
-                <FormButton
-                  itemName="発注書を発行する"
-                  onClick={() => setShowIssueForm((v) => !v)}
-                  buttonType="cancel"
-                />
-              </div>
-              {showIssueForm && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-end",
-                    flexWrap: "wrap",
-                    marginTop: 10,
-                  }}
-                >
-                  <div className="section-item">
-                    <label className="section-label">送付方法</label>
-                    <select
-                      className="section-input"
-                      value={issueChannel}
-                      onChange={(e) => setIssueChannel(e.target.value)}
-                    >
-                      <option value="FAX">FAX</option>
-                      <option value="Email">Email</option>
-                      <option value="郵送">郵送</option>
-                      <option value="その他">その他</option>
-                    </select>
-                  </div>
-                  <div className="section-item" style={{ flex: 1, minWidth: 200 }}>
-                    <label className="section-label">備考</label>
-                    <input
-                      type="text"
-                      className="section-input"
-                      value={issueNote}
-                      onChange={(e) => setIssueNote(e.target.value)}
-                    />
-                  </div>
-                  <FormButton itemName="発行して記録する" onClick={handleIssue} />
+            )}
+            {reconciliation && (
+              <div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+                  <b>対応状況：</b>
+                  <Chip label="発注済み" color="success" size="small" />
+                  <Chip
+                    label={
+                      reconciliation.isFullyReceived
+                        ? "入荷済み（全部）"
+                        : reconciliation.isPartiallyReceived
+                        ? "入荷済み（一部）"
+                        : "未入荷"
+                    }
+                    color={
+                      reconciliation.isFullyReceived
+                        ? "success"
+                        : reconciliation.isPartiallyReceived
+                        ? "warning"
+                        : "default"
+                    }
+                    size="small"
+                  />
+                  <Chip
+                    label={reconciliation.isInvoiceReceived ? "請求受領済み" : "請求未受領"}
+                    color={reconciliation.isInvoiceReceived ? "success" : "default"}
+                    size="small"
+                  />
+                  <Chip
+                    label={reconciliation.isFullyPaid ? "支払済み" : "未払い"}
+                    color={reconciliation.isFullyPaid ? "success" : "default"}
+                    size="small"
+                  />
                 </div>
-              )}
-              {issuances.length > 0 && (
-                <>
-                  <Table size="small" style={{ marginTop: 10 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>発行日時</TableCell>
-                        <TableCell>送付方法</TableCell>
-                        <TableCell>備考</TableCell>
-                        <TableCell>ファイル名</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {issuances.map((iss) => (
-                        <TableRow key={iss.id}>
-                          <TableCell>{new Date(iss.issuedDate).toLocaleString("ja-JP")}</TableCell>
-                          <TableCell>{iss.channel}</TableCell>
-                          <TableCell>{iss.note}</TableCell>
-                          <TableCell>{iss.fileName}</TableCell>
+                {reconciliation.hasAmountMismatch && (
+                  <>
+                    <Alert severity="warning" style={{ marginTop: 10 }}>
+                      発注金額（¥{reconciliation.orderedTotalAmount.toLocaleString()}）に対し、請求金額の合計は¥
+                      {reconciliation.invoicedTotalAmount.toLocaleString()}で、¥
+                      {Math.abs(
+                        reconciliation.invoicedTotalAmount - reconciliation.orderedTotalAmount
+                      ).toLocaleString()}
+                      {reconciliation.invoicedTotalAmount > reconciliation.orderedTotalAmount
+                        ? "超過"
+                        : "不足"}
+                      しています。下記の請求書をご確認ください。
+                    </Alert>
+                    <Table size="small" style={{ marginTop: 10 }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>請求書番号</TableCell>
+                          <TableCell style={{ textAlign: "right" }}>金額</TableCell>
+                          <TableCell>ステータス</TableCell>
+                          <TableCell>操作</TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 5 }}>
-                    PDFは下記の「添付ファイル」からダウンロードできます。
-                  </p>
-                </>
-              )}
-            </Grid>
-          )}
+                      </TableHead>
+                      <TableBody>
+                        {reconciliation.invoices.map((inv) => (
+                          <TableRow key={inv.id}>
+                            <TableCell>{inv.purchaseInvoiceNumber}</TableCell>
+                            <TableCell style={{ textAlign: "right" }}>
+                              ¥{inv.totalAmount.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={inv.status === "Paid" ? "支払済み" : "未払い"}
+                                color={inv.status === "Paid" ? "success" : "default"}
+                                size="small"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="primary"
+                                startIcon={<Icons.Visibility />}
+                                onClick={() => handleOpenInvoice(inv.id)}
+                              >
+                                詳細
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </div>
+            )}
+          </FormSection>
+        )}
+        {dataId && (
+          <FormSection title="発注書発行・送付履歴">
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <FormButton
+                itemName="発注書を発行する"
+                onClick={() => setShowIssueForm((v) => !v)}
+                buttonType="secondaryAction"
+                sx={{ width: "auto" }}
+              />
+            </div>
+            {showIssueForm && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-end",
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
+                <div className="section-item">
+                  <label className="section-label">送付方法</label>
+                  <select
+                    className="section-input"
+                    value={issueChannel}
+                    onChange={(e) => setIssueChannel(e.target.value)}
+                  >
+                    <option value="FAX">FAX</option>
+                    <option value="Email">Email</option>
+                    <option value="郵送">郵送</option>
+                    <option value="その他">その他</option>
+                  </select>
+                </div>
+                <div className="section-item" style={{ flex: 1, minWidth: 200 }}>
+                  <label className="section-label">備考</label>
+                  <input
+                    type="text"
+                    className="section-input"
+                    value={issueNote}
+                    onChange={(e) => setIssueNote(e.target.value)}
+                  />
+                </div>
+                <FormButton itemName="発行して記録する" onClick={handleIssue} sx={{ width: "auto" }} />
+              </div>
+            )}
+            {issuances.length > 0 && (
+              <>
+                <Table size="small" style={{ marginTop: 10 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>発行日時</TableCell>
+                      <TableCell>送付方法</TableCell>
+                      <TableCell>備考</TableCell>
+                      <TableCell>ファイル名</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {issuances.map((iss) => (
+                      <TableRow key={iss.id}>
+                        <TableCell>{new Date(iss.issuedDate).toLocaleString("ja-JP")}</TableCell>
+                        <TableCell>{iss.channel}</TableCell>
+                        <TableCell>{iss.note}</TableCell>
+                        <TableCell>{iss.fileName}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <p style={{ fontSize: "0.85rem", color: "#666", marginTop: 5 }}>
+                  PDFは下記の「添付ファイル」からダウンロードできます。
+                </p>
+              </>
+            )}
+          </FormSection>
+        )}
+        <FormSection title="発注情報">
+        <Grid container columnSpacing={5} rowSpacing={3}>
           <Grid item xs={6}>
             <div className="section-item">
               <label className="section-label">
@@ -677,29 +683,34 @@ const PurchaseOrderDetail = ({ purchaseOrderId, initialData }) => {
               ></textarea>
             </div>
           </Grid>
-          <Grid item xs={12}>
-            <div className="handle-button">
-              <FormButton itemName="保存" type="submit" />
-              <FormButton itemName="新規作成" onClick={handleClear} />
-              <FormButton
-                itemName="関連書類の添付"
-                buttonType="attach"
-                titleContent={!dataId ? "発注を保存してから書類の添付や管理が行えます。" : ""}
-                onClick={handleAttach}
-                disabled={!dataId}
-              />
-            </div>
-          </Grid>
-          {dataId && (
-            <Grid item xs={12}>
-              <AttachedFilesList
-                entityType="PurchaseOrder"
-                entityId={dataId}
-                refreshToken={attachRefreshToken}
-              />
-            </Grid>
-          )}
         </Grid>
+        </FormSection>
+        <div className="handle-button">
+          <FormButton itemName="保存" type="submit" sx={{ width: "auto", minWidth: 160 }} />
+          <FormButton
+            itemName="新規作成"
+            buttonType="secondaryAction"
+            onClick={handleClear}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+          <FormButton
+            itemName="関連書類の添付"
+            buttonType="attach"
+            titleContent={!dataId ? "発注を保存してから書類の添付や管理が行えます。" : ""}
+            onClick={handleAttach}
+            disabled={!dataId}
+            sx={{ width: "auto", minWidth: 160 }}
+          />
+        </div>
+        {dataId && (
+          <FormSection>
+            <AttachedFilesList
+              entityType="PurchaseOrder"
+              entityId={dataId}
+              refreshToken={attachRefreshToken}
+            />
+          </FormSection>
+        )}
       </form>
       <DialogHandle
         open={showAttachDialog}
